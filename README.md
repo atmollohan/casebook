@@ -109,6 +109,16 @@ Sign in with the seeded researcher:
 Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle Studio), `npm run build && npm start`
 (production).
 
+## Sample files to upload live
+
+`samples/` holds 12 fabricated files — VCF, CSV, TSV, BED, GFF, FASTA, JSON, TXT, MD, PNG, PDF —
+for showing the upload and preview pipeline during a demo. Every one is already inside the
+upload allowlist and far under the size cap, so nothing rejects mid-demo. See
+[`samples/README.md`](./samples/README.md) for what each file demonstrates and a suggested upload
+order. Regenerate with `npm run samples`; the generator is deterministic and is the provenance
+record for the data. `src/lib/files/samples.test.ts` fails the build if a sample is rejected by
+the allowlist, grows too large, or stops being obviously synthetic.
+
 ## Seeded demo walkthrough
 
 - **OM-P-0001 · Patricia Okafor** — the flagship: 6 data assets (WES variant calls, SV VCF, karyotype, treatment
@@ -120,7 +130,7 @@ Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle
 
 ## Tests
 
-`npm test` runs four suites (38 tests):
+`npm test` runs five suites (46 tests):
 
 - `src/lib/data-layer.test.ts` — patient/program creation + pid sequencing + ownership isolation, data record
   create/list/delete with history, the activity status lifecycle, findings-with-evidence + reporter resolution,
@@ -132,6 +142,8 @@ Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle
 - `src/actions/reports.test.ts` — the report server actions against a real database: a generated draft is saved
   and openable, generation is recorded in history, repeat generation adds rather than replaces, a
   non-owner is refused for both generating and finalizing, and no internal error text is returned to the client.
+- `src/lib/files/samples.test.ts` — the demo sample files: all accepted by the upload allowlist, all small
+  enough to upload instantly, covering the formats worth showing, and using only obviously fake identifiers.
 
 New behavior needs a test, and every new read or write path needs a negative test for a user without access.
 

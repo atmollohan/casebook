@@ -1,0 +1,57 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1570 >>
+stream
+SYNTHETIC CONSULTATION NOTE - DEMO DATA ONLY
+BT /F2 16 Tf 60 760 Td (SYNTHETIC CONSULTATION NOTE - DEMO DATA ONLY) Tj ET
+BT /F1 10 Tf 60 730 Td (Patient: SYN-DEMO-0001   MRN: SYN-DEMO-MRN-4471   DOB: 1984-02-11) Tj ET
+BT /F1 10 Tf 60 714 Td (Program: SYN-DEMO - Suspected inherited metabolic disorder) Tj ET
+BT /F1 10 Tf 60 698 Td (Consultant: Dr. A. Researcher \(synthetic persona\)   Date: 2026-01-20) Tj ET
+BT /F1 10 Tf 60 676 Td () Tj ET
+BT /F2 11 Tf 60 654 Td (REASON FOR CONSULTATION) Tj ET
+BT /F1 10 Tf 60 636 Td (Three-month history of progressive fatigue and exercise intolerance.) Tj ET
+BT /F1 10 Tf 60 622 Td (No acute presentations. Family history unremarkable.) Tj ET
+BT /F1 10 Tf 60 602 Td () Tj ET
+BT /F2 11 Tf 60 580 Td (SUMMARY) Tj ET
+BT /F1 10 Tf 60 562 Td (Reviewed the synthetic targeted panel alongside serial blood counts.) Tj ET
+BT /F1 10 Tf 60 548 Td (The HBB result is the leading candidate and is being correlated against) Tj ET
+BT /F1 10 Tf 60 534 Td (the rising reticulocyte count. The ABCC8 variant is a secondary consideration.) Tj ET
+BT /F1 10 Tf 60 514 Td () Tj ET
+BT /F2 11 Tf 60 492 Td (PLAN) Tj ET
+BT /F1 10 Tf 60 474 Td (1. Correlate variants with phenotype at the multidisciplinary meeting.) Tj ET
+BT /F1 10 Tf 60 460 Td (2. Extend analysis to the exome if the panel is non-diagnostic.) Tj ET
+BT /F1 10 Tf 60 446 Td (3. Genetic counselling referral once a diagnostic result is confirmed.) Tj ET
+BT /F1 10 Tf 60 426 Td () Tj ET
+BT /F1 9 Tf 60 400 Td (Every identifier in this document is fabricated for demonstration purposes.) Tj ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000001873 00000 n 
+0000001943 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2018
+%%EOF

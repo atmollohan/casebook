@@ -1,0 +1,24 @@
+SYNTHETIC CONSULTATION NOTE — DEMO DATA ONLY
+============================================
+
+Patient: SYN-DEMO-0001    MRN: SYN-DEMO-MRN-4471    DOB: 1984-02-11
+Program: SYN-DEMO — Suspected inherited metabolic disorder
+Consultant: Dr. A. Researcher (synthetic persona)
+Date: 2026-01-20
+
+REASON FOR CONSULTATION
+Three-month history of progressive fatigue and exercise intolerance.
+No acute presentations. Family history unremarkable.
+
+SUMMARY
+Reviewed the synthetic targeted panel alongside serial blood counts.
+The HBB result is the leading candidate and is being correlated against
+the rising reticulocyte count. The ABCC8 variant is a secondary consideration
+given the absence of neonatal hyperglycaemia in the record.
+
+PLAN
+1. Correlate variants with phenotype at the multidisciplinary meeting.
+2. Extend analysis to the exome if the panel is non-diagnostic.
+3. Genetic counselling referral once a diagnostic result is confirmed.
+
+NOTE: every identifier in this document is fabricated for demonstration.

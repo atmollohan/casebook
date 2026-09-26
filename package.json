@@ -2,7 +2,7 @@
   "name": "omanta-lab",
   "version": "0.1.0",
   "private": true,
-  "description": "Omanta Lab — a collaborative patient research workspace. Synthetic-data prototype.",
+  "description": "Omanta Lab \u2014 a collaborative patient research workspace. Synthetic-data prototype.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,6 +19,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
+    "samples": "tsx scripts/samples.ts",
     "setup": "tsx scripts/setup.ts && tsx scripts/seed.ts"
   },
   "dependencies": {
