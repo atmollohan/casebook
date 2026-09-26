@@ -192,16 +192,33 @@ checks that matter and where each one lives:
 
 ### Stack
 
-| Layer      | Choice                                                      | File(s)                                                                    |
-| ---------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Framework  | Next.js 15 (App Router), TypeScript                         | `src/app/`                                                                 |
-| Styling    | Tailwind CSS v3                                             | `src/app/globals.css`, `tailwind.config.ts`                                |
-| Database   | SQLite via better-sqlite3 (single file)                     | `data/omanta.db`                                                           |
-| Data layer | Drizzle ORM (schema + typed queries + migrations)           | `src/lib/db/`                                                              |
-| Auth       | Hand-rolled: bcryptjs + DB session tokens + httpOnly cookie | `src/lib/auth/`                                                            |
-| Uploads    | Local disk under `data/storage/`, random filenames          | `src/lib/files/`                                                           |
-| Tests      | Vitest                                                      | `src/lib/data-layer.test.ts`, `src/lib/browser/onboarding-storage.test.ts` |
-| Gate       | Prettier + ESLint + tsc + Vitest + `next build`             | `AGENTS.md`, `package.json` (`npm run verify`)                             |
+| Layer      | Choice                                                      | File(s)                                                                     |
+| ---------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Framework  | Next.js 15 (App Router), TypeScript                         | `src/app/`                                                                  |
+| Styling    | Tailwind CSS v3                                             | `src/app/globals.css`, `tailwind.config.ts`                                 |
+| Database   | SQLite via better-sqlite3 (single file)                     | `data/omanta.db`                                                            |
+| Data layer | Drizzle ORM (schema + typed queries + migrations)           | `src/lib/db/`                                                               |
+| Auth       | Hand-rolled: bcryptjs + DB session tokens + httpOnly cookie | `src/lib/auth/`                                                             |
+| Uploads    | Local disk under `data/storage/`, random filenames          | `src/lib/files/`                                                            |
+| Tests      | Vitest, real SQLite in memory                               | `src/actions/workflow.test.ts`, `src/actions/reports.test.ts`, `src/lib/**` |
+| Gate       | Prettier + ESLint + tsc + Vitest + `next build`             | `AGENTS.md`, `package.json` (`npm run verify`)                              |
+
+### Where the app explains itself
+
+The written guide lives at `/help`, inside the app, so nobody has to leave it to find out what a tab is
+for. Its content is a typed array in `src/lib/help-content.ts` and the page renders that data rather than
+hand-written markup. That is what lets a test assert the anchors stay unique, every part of the workflow
+stays covered, and the guide never starts describing a feature that has not shipped.
+
+### What the tests actually cover
+
+`src/actions/workflow.test.ts` is the one to read first. It drives a whole case — upload, activity,
+finding, evidence, report, finalize, delete — through the real server actions against a real database and
+real files on disk, and checks three things at once: the work persisted, the generated report contains it,
+and a researcher without access is refused at every step. Only the request scope is stubbed.
+
+Everything that touches the database is tested this way rather than against a mock, because a mock cannot
+tell you the query is wrong.
 
 ### Directory layout
 
@@ -212,6 +229,7 @@ src/
     patients/[id]/...     The patient workspace (overview, data, activities, findings, evidence, reports, history)
     patients/new/         Create patient + program
     report/[id]/          Report viewer
+    help/                 In-app written guide
     api/files/[id]/       Authorized file download endpoint
   actions/                Server actions: validate input, check ownership, call repo
   components/
