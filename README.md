@@ -139,7 +139,7 @@ the allowlist, grows too large, or stops being obviously synthetic.
 
 ## Tests
 
-`npm test` runs six suites (59 tests):
+`npm test` runs eight suites (72 tests):
 
 - `src/lib/data-layer.test.ts` — patient/program creation + pid sequencing + ownership isolation, data record
   create/list/delete with history, the activity status lifecycle, findings-with-evidence + reporter resolution,
@@ -155,6 +155,11 @@ the allowlist, grows too large, or stops being obviously synthetic.
   enough to upload instantly, covering the formats worth showing, and using only obviously fake identifiers.
 - `src/lib/help-content.test.tsx` — the in-app guide: unique link anchors, coverage of every part of the
   workflow, no claims about undelivered features, and the glossary filter matching by term and definition.
+- `src/actions/workflow.test.ts` — the case lifecycle end to end, through the real server actions: upload a
+  file (real bytes, real disk), run an activity through its statuses, record a finding, cite evidence,
+  generate and finalize a report, delete a file. Asserts the finished report contains the actual work, a
+  researcher who does not own the program is refused at every read and write, and every step left a
+  history entry attributed to the researcher who did it.
 
 New behavior needs a test, and every new read or write path needs a negative test for a user without access.
 

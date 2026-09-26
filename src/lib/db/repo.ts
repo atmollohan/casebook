@@ -821,11 +821,32 @@ export function logHistory(
   db.insert(historyEvents).values(row).run();
 }
 
-export function listHistory(db: Db, programId: string, userId: string): HistoryEvent[] | null {
+/**
+ * A history entry with its actor resolved. Attribution is the point of this table: a case
+ * is meant to be handed between researchers, so "what happened" is only half the record.
+ * `actorName` is null for events with no actor (seeded fixtures, system writes).
+ */
+export interface HistoryEntry extends HistoryEvent {
+  actorName: string | null;
+}
+
+export function listHistory(db: Db, programId: string, userId: string): HistoryEntry[] | null {
   if (!programAllowed(db, programId, userId)) return null;
   return db
-    .select()
+    .select({
+      id: historyEvents.id,
+      programId: historyEvents.programId,
+      actorId: historyEvents.actorId,
+      eventType: historyEvents.eventType,
+      entityType: historyEvents.entityType,
+      entityId: historyEvents.entityId,
+      summary: historyEvents.summary,
+      metadataJson: historyEvents.metadataJson,
+      createdAt: historyEvents.createdAt,
+      actorName: users.name,
+    })
     .from(historyEvents)
+    .leftJoin(users, eq(users.id, historyEvents.actorId))
     .where(eq(historyEvents.programId, programId))
     .orderBy(desc(historyEvents.createdAt))
     .all();

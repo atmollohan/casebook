@@ -151,11 +151,11 @@ export const HELP_SECTIONS: HelpSection[] = [
     blocks: [
       {
         kind: "p",
-        text: "History is written for you. Creating a program, uploading or deleting a file, walking an activity through its statuses, recording a finding, adding or removing evidence, and generating or finalizing a report all append an entry with the time and the actor. Nothing in History is editable.",
+        text: "History is written for you. Creating a program, uploading or deleting a file, walking an activity through its statuses, recording a finding, adding or removing evidence, and generating or finalizing a report all append an entry with the time and the researcher who did it. Nothing in History is editable.",
       },
       {
         kind: "p",
-        text: "Use it to reconstruct how a conclusion was reached, or to confirm what changed before a report was finalized.",
+        text: "Use it to reconstruct how a conclusion was reached, to confirm what changed before a report was finalized, or to see who contributed what to a case.",
       },
     ],
   },

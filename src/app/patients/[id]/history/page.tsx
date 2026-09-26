@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Avatar } from "@/components/ui/avatar";
 import { History as HistoryIcon } from "lucide-react";
 import { formatDateTime, timeAgo } from "@/lib/utils/format";
 
@@ -56,8 +57,15 @@ export default async function HistoryTabPage({ params }: { params: Promise<{ id:
                   </Badge>
                   <span className="text-sm font-medium text-ink-900">{e.summary}</span>
                 </div>
-                <div className="mt-0.5 text-xs text-ink-700/50">
-                  {timeAgo(e.createdAt)} · {formatDateTime(e.createdAt)}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-700/60">
+                  <span className="inline-flex items-center gap-1.5 font-medium text-ink-700/80">
+                    <Avatar name={e.actorName ?? "System"} size="sm" />
+                    {e.actorName ?? "System"}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    {timeAgo(e.createdAt)} · {formatDateTime(e.createdAt)}
+                  </span>
                 </div>
               </li>
             ))}
