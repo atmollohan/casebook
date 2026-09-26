@@ -229,7 +229,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
                     Start an analysis
                   </ButtonLink>
                 ) : reports.length === 0 ? (
-                  <ButtonLink href={`/patients/${id}/reports?generate=1`} size="sm">
+                  <ButtonLink href={`/patients/${id}/reports`} size="sm">
                     Generate report
                   </ButtonLink>
                 ) : (

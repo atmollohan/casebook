@@ -12,6 +12,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Next aliases this package at build time. Vitest has no such alias, so importing
+      // any module that guards itself with `import "server-only"` would fail to resolve.
+      "server-only": path.resolve(__dirname, "./src/test/server-only-stub.ts"),
     },
   },
 });

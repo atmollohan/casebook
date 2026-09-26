@@ -4,25 +4,17 @@ import { requireUser } from "@/lib/server/auth";
 import { notFound } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GenerateReportForm } from "@/components/workspace/generate-report-form";
-import { FileText, Sparkles, FileDown, Clock3 } from "lucide-react";
+import { FileText, FileDown, Clock3 } from "lucide-react";
 import { formatDate, timeAgo } from "@/lib/utils/format";
 import { REPORT_STATUS_LABELS, type ReportStatus } from "@/lib/constants";
 import Link from "next/link";
 
 export const metadata = { title: "Reports" };
 
-export default async function ReportsTabPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ generate?: string }>;
-}) {
+export default async function ReportsTabPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { generate } = await searchParams;
   const user = await requireUser();
   const db = getDb();
   const found = findPatientById(db, id, user.id);
@@ -31,26 +23,16 @@ export default async function ReportsTabPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight text-ink-900">Reports</h2>
-        <ButtonLink href={`/patients/${id}/reports?generate=1`} icon={<Sparkles className="size-4" />}>
-          Generate report
-        </ButtonLink>
-      </div>
+      <h2 className="text-lg font-semibold tracking-tight text-ink-900">Reports</h2>
 
-      {generate === "1" && <GenerateReportForm programId={found.program.id} patientId={id} />}
+      {/* The form is the tab's primary action, always visible. It used to sit behind a
+          query-parameter link, which produced a second button with the same label that
+          only re-navigated to the current URL — clicking it did nothing at all. */}
+      <GenerateReportForm programId={found.program.id} patientId={id} />
 
-      {reports.length === 0 && generate !== "1" ? (
+      {reports.length === 0 ? (
         <Card>
-          <EmptyState
-            icon={<FileText className="size-6" />}
-            title="No reports generated"
-            action={
-              <ButtonLink href={`/patients/${id}/reports?generate=1`} size="sm">
-                <Sparkles className="size-4" /> Generate the first report
-              </ButtonLink>
-            }
-          />
+          <EmptyState icon={<FileText className="size-6" />} title="No reports generated yet" />
         </Card>
       ) : (
         <ul className="space-y-3">
