@@ -120,7 +120,7 @@ Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle
 
 ## Tests
 
-`npm test` runs three suites (30 tests):
+`npm test` runs four suites (38 tests):
 
 - `src/lib/data-layer.test.ts` — patient/program creation + pid sequencing + ownership isolation, data record
   create/list/delete with history, the activity status lifecycle, findings-with-evidence + reporter resolution,
@@ -129,6 +129,9 @@ Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle
   malformed, and throwing browser storage.
 - `src/app/route-boundaries.test.tsx` — the loading, error, global-error, and not-found boundaries: accessible
   loading semantics, no internal error text leaking into the page, and a way forward from every state.
+- `src/actions/reports.test.ts` — the report server actions against a real database: a generated draft is saved
+  and openable, generation is recorded in history, repeat generation adds rather than replaces, a
+  non-owner is refused for both generating and finalizing, and no internal error text is returned to the client.
 
 New behavior needs a test, and every new read or write path needs a negative test for a user without access.
 
@@ -150,8 +153,9 @@ Keep these current as the app changes — a stale doc is a defect:
 ## Security & compliance posture
 
 - bcrypt password hashing, opaque session cookies (SHA-256 token hashes), no secrets committed.
-- Server-side ownership checks on every read/write; uploads are extension/size-allowlisted and size-capped, and file
-  bytes are only ever served through the authorized `/api/files/[id]` route.
+- Server-side ownership checks on every read/write, including report finalization; uploads are
+  extension/size-allowlisted and size-capped, and file bytes are only ever served through the authorized
+  `/api/files/[id]` route.
 - **Not claimed:** HIPAA/GDPR-compliant data handling, audit attestation, RBAC beyond single owner, transport
   security config, real clinical validity. Do not run with real patient data. Compliance is Phase 10 work with
   explicit sign-off.

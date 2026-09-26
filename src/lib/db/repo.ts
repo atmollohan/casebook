@@ -775,6 +775,9 @@ export function finalizeReport(db: Db, user: User, reportId: string, programId: 
     .where(and(eq(reports.id, reportId), eq(reports.programId, programId)))
     .get();
   if (!report) return null;
+  // Finalizing locks a report and writes history, so it needs the same ownership
+  // check as every other write — a report id alone must not be enough.
+  if (!programAllowed(db, programId, user.id)) return null;
   db.update(reports).set({ status: "final", finalizedAt: now() }).where(eq(reports.id, reportId)).run();
   logHistory(db, {
     programId,
