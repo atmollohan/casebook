@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# emacs / misc
+*~
+*.swp
+
+# osx
+.DS_Store
+
+# env
+.env
+.env.local
+.env*.local
+
+# runtime data (sqlite + uploads) — created by setup/seed
+data/
+*.log
+
+# drizzle generated
+drizzle/
+
+# coverage
+coverage/
+
+# typescript incremental build cache
+tsconfig.tsbuildinfo
