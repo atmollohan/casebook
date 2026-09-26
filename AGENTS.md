@@ -192,6 +192,7 @@ code they describe.
 | `AGENTS.md`                        | The gate, conventions, or house rules change                                    |
 | `.planning/STATE.md`               | Work starts, moves, finishes, or gets blocked                                   |
 | `.planning/phases/*/NN-CONTEXT.md` | A decision is made, reversed, or discovered mid-build                           |
+| `src/lib/help-content.ts`          | A workflow, upload rule, status, or lifecycle the guide explains changes        |
 
 Rules:
 
@@ -199,7 +200,8 @@ Rules:
 - Keep the plain-English promise: `docs/ARCHITECTURE.md` must stay readable by a non-engineer,
   and `README.md` must be enough to run the app from a clean clone.
 - Do not document a capability that does not exist yet. Planned work belongs in
-  `.planning/ROADMAP.md` and `NN-CONTEXT.md`, written as intent — never as shipped behavior.
+  `.planning/ROADMAP.md` and `NN-CONTEXT.md`, written as intent — never as shipped behavior. The in-app
+  guide at `/help` is held to the same rule, and its test enforces it.
 - Commands in docs must be commands that exist in `package.json`. Do not invent flags.
 
 ---

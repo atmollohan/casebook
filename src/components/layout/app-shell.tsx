@@ -77,10 +77,10 @@ export function AppShell({ user, children }: { user: User; children: React.React
           <div className="flex items-center gap-2 sm:gap-3">
             <SyntheticDataNotice />
             <ButtonLink
-              href="/?onboard=1"
+              href="/help"
               variant="ghost"
               size="sm"
-              aria-label="Help and walkthrough"
+              aria-label="Help and documentation"
               className="shrink-0"
             >
               Help

@@ -109,6 +109,15 @@ Sign in with the seeded researcher:
 Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle Studio), `npm run build && npm start`
 (production).
 
+## Help is inside the app
+
+The **Help** control in the header opens `/help` — a written guide to the workflow, uploads, the
+reasoning chain, report lifecycle, troubleshooting, and a filterable glossary of genomics and research
+terms. It is there so nobody has to leave the app, read a repository, or ask a question to find out
+what a tab is for. The content lives in `src/lib/help-content.ts` as data, which lets
+`src/lib/help-content.test.tsx` assert the anchors, the topic coverage, and that the page never
+promises a capability the app has not shipped.
+
 ## Sample files to upload live
 
 `samples/` holds 12 fabricated files — VCF, CSV, TSV, BED, GFF, FASTA, JSON, TXT, MD, PNG, PDF —
@@ -130,7 +139,7 @@ the allowlist, grows too large, or stops being obviously synthetic.
 
 ## Tests
 
-`npm test` runs five suites (46 tests):
+`npm test` runs six suites (59 tests):
 
 - `src/lib/data-layer.test.ts` — patient/program creation + pid sequencing + ownership isolation, data record
   create/list/delete with history, the activity status lifecycle, findings-with-evidence + reporter resolution,
@@ -144,6 +153,8 @@ the allowlist, grows too large, or stops being obviously synthetic.
   non-owner is refused for both generating and finalizing, and no internal error text is returned to the client.
 - `src/lib/files/samples.test.ts` — the demo sample files: all accepted by the upload allowlist, all small
   enough to upload instantly, covering the formats worth showing, and using only obviously fake identifiers.
+- `src/lib/help-content.test.tsx` — the in-app guide: unique link anchors, coverage of every part of the
+  workflow, no claims about undelivered features, and the glossary filter matching by term and definition.
 
 New behavior needs a test, and every new read or write path needs a negative test for a user without access.
 
