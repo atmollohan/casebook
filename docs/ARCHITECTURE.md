@@ -238,6 +238,20 @@ docs/                     This document
 AGENTS.md                 The working agreement, including the mandatory verify gate
 ```
 
+### Loading, error, and not-found boundaries
+
+Every route has a state for the three moments that are not "the page":
+
+| File                       | Covers                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/app/loading.tsx`      | Navigation in progress. A quiet skeleton with `role="status"`, so a slow page announces itself instead of going blank.                                       |
+| `src/app/error.tsx`        | A failure inside a page. Explains it in plain language, offers a retry, and shows a support reference. The underlying error text is never shown to the user. |
+| `src/app/global-error.tsx` | A failure in the root layout itself — in practice, a database that is missing or not migrated. Renders its own document, since it replaces the layout.       |
+| `src/app/not-found.tsx`    | An unknown URL. Named and branded, with a way back to the program list.                                                                                      |
+
+`src/app/route-boundaries.test.tsx` asserts the accessible loading semantics, that no internal
+error text reaches the page, and that each state offers a way forward.
+
 ### The one place where raw SQL appears
 
 Almost all queries go through Drizzle's type-safe builder. Handwritten SQL is confined to three

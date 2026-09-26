@@ -20,7 +20,8 @@ npm run verify
 ```
 
 That single command is the whole quality gate, in order: Prettier format check → ESLint → TypeScript → Vitest →
-`next build`. **No change is done until it passes clean.** It currently covers 21 tests and a real production compile.
+`next build`. **No change is done until it passes clean.** It currently covers 30 tests and a real production
+compile.
 
 | Task                | Command              |
 | ------------------- | -------------------- |
@@ -60,6 +61,9 @@ The UI is deliberately quiet. Documentation is available on demand and never blo
 - **One synthetic-data disclosure** in the shell, with a per-report draft warning where it actually matters.
 - **No prose that restates a heading.** Empty states are a short title and one clear action.
 - **Constraints live at the point of action** — file types, size limits, and required fields stay next to the control.
+- **Every route has a loading, error, and not-found state** (`src/app/{loading,error,global-error,not-found}.tsx`).
+  A slow page shows a quiet skeleton that announces itself to screen readers; a failure explains itself in
+  plain language with a retry and a support reference, and never shows internal error text.
 - Prettier (with a Tailwind class-order plugin) owns formatting, so diffs stay readable.
 
 ## Domain model
@@ -116,13 +120,15 @@ Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle
 
 ## Tests
 
-`npm test` runs two suites (21 tests):
+`npm test` runs three suites (30 tests):
 
 - `src/lib/data-layer.test.ts` — patient/program creation + pid sequencing + ownership isolation, data record
   create/list/delete with history, the activity status lifecycle, findings-with-evidence + reporter resolution,
   non-owner access denial, and the full report-generate → create → access → finalize flow.
 - `src/lib/browser/onboarding-storage.test.ts` — the onboarding guide's storage contract, including missing,
   malformed, and throwing browser storage.
+- `src/app/route-boundaries.test.tsx` — the loading, error, global-error, and not-found boundaries: accessible
+  loading semantics, no internal error text leaking into the page, and a way forward from every state.
 
 New behavior needs a test, and every new read or write path needs a negative test for a user without access.
 
