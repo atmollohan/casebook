@@ -200,7 +200,7 @@ checks that matter and where each one lives:
 | Data layer | Drizzle ORM (schema + typed queries + migrations)           | `src/lib/db/`                                                               |
 | Auth       | Hand-rolled: bcryptjs + DB session tokens + httpOnly cookie | `src/lib/auth/`                                                             |
 | Uploads    | Local disk under `data/storage/`, random filenames          | `src/lib/files/`                                                            |
-| Tests      | Vitest, real SQLite in memory                               | `src/actions/workflow.test.ts`, `src/actions/reports.test.ts`, `src/lib/**` |
+| Tests      | Vitest, real SQLite in memory                               | `src/actions/workflow.test.ts`, `src/actions/patient.test.ts`, `src/lib/**` |
 | Gate       | Prettier + ESLint + tsc + Vitest + `next build`             | `AGENTS.md`, `package.json` (`npm run verify`)                              |
 
 ### Where the app explains itself
@@ -272,8 +272,8 @@ error text reaches the page, and that each state offers a way forward.
 
 ### The one place where raw SQL appears
 
-Almost all queries go through Drizzle's type-safe builder. Handwritten SQL is confined to three
-places, all with bound parameters:
+Almost all queries go through Drizzle's type-safe builder. Handwritten SQL is confined to four
+places, none of it built from user input:
 
 - `queryEvidenceForFindingIds` in `src/lib/db/repo.ts` — fetches evidence for a list of finding
   IDs. It builds an `IN (...)` list by stripping quotes manually rather than using bound
@@ -281,6 +281,10 @@ places, all with bound parameters:
 - One templated `update patients set condition_summary = ?` in `src/actions/patient.ts`.
 - One authorization lookup in `src/app/api/files/[id]/route.ts` (it uses the raw driver handle
   because it must authorize before streaming bytes).
+- `nextPatientPid` in `src/lib/db/repo.ts` — a `sql` fragment taking `max()` of the numeric part of
+  the pid, so the next human-readable patient id is derived from the highest one in use rather than
+  from the row count. A count would hand back a number already taken as soon as retention and
+  deletion (Phase 8) removed rows.
 
 New ad-hoc SQL does not go in pages or components. Add a repo function instead.
 

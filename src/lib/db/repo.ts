@@ -177,12 +177,15 @@ export function findPatientById(
 }
 
 export function nextPatientPid(db: Db): string {
+  // Derived from the highest pid already issued, never from the row count: retention and
+  // deletion (Phase 8) remove rows, and a count would then hand back a pid that is already
+  // taken, failing the unique index on an otherwise valid create.
   const row = db
-    .select({ c: sql<number>`count(*)` })
+    .select({ n: sql<number | null>`max(cast(replace(${patients.pid}, 'OM-P-', '') as integer))` })
     .from(patients)
     .get();
-  const n = (row?.c ?? 0) + 1;
-  return `OM-P-${String(n).padStart(4, "0")}`;
+  const highest = row?.n ?? 0;
+  return `OM-P-${String(highest + 1).padStart(4, "0")}`;
 }
 
 export function createPatientAndProgram(

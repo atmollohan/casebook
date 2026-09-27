@@ -20,10 +20,15 @@ export type FormState = { error?: string; fieldErrors?: Record<string, string[] 
 const createPatientSchema = z.object({
   firstName: z.string().min(1, "First name is required.").max(80),
   lastName: z.string().min(1, "Last name is required.").max(80),
-  birthYear: z.preprocess(
-    (v) => (v === "" || v === null ? undefined : Number(v)),
-    z.number().int().min(1900).max(new Date().getFullYear()).optional(),
-  ),
+  // An untouched number input submits "", and a missing field submits null. Both mean
+  // "not recorded" for an optional field. Anything else is coerced, and junk is left as-is
+  // so Zod reports a real type error instead of an unexplained NaN.
+  birthYear: z.preprocess((v) => {
+    if (v === undefined || v === null) return undefined;
+    if (typeof v === "string" && v.trim() === "") return undefined;
+    const n = Number(v);
+    return Number.isNaN(n) ? v : n;
+  }, z.number().int().min(1900).max(new Date().getFullYear()).optional()),
   sex: z.enum(SEX_VALUES).optional(),
   conditionSummary: z.string().max(500).optional().default(""),
   consentStatus: z.enum(CONSENT_STATUSES).default("consented"),
