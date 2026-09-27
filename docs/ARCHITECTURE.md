@@ -208,15 +208,41 @@ the only action that freezes the content permanently.
 Phase 0 is a synthetic-data demo, but the security habits are real. These are the
 checks that matter and where each one lives:
 
-| Concern                       | What the app does                                                           | Concrete checks you can run yourself                 |
-| ----------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Signing in                    | Passwords are hashed (bcrypt12); the browser only gets a ticket (cookie)    | A stolen DB file does not expose plaintext passwords |
-| Stolen cookie                 | The cookie is matched against the database on every request, and it expires | Delete the session row → the user is logged out      |
-| Seeing someone else's patient | Ownership is checked on every page and every action, server-side            | Open someone else's patient URL → you get a 404      |
-| Downloading files             | File downloads re-check ownership on the server                             | Request another program's file URL → 403/404         |
-| Uploading files               | Type, size (≤25 MB), and filename extension are validated                   | Try `.exe` or a giant file → rejected                |
-| Secrets                       | No real secrets are committed to the repo                                   | `.env` is git-ignored                                |
-| Patient safety                | All data carries a "Synthetic — demo" badge and the UI repeats the warning  | Banner on every dashboard                            |
+| Concern                       | What the app does                                                           | Concrete checks you can run yourself                        |
+| ----------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Signing in                    | Passwords are hashed (bcrypt12); the browser only gets a ticket (cookie)    | A stolen DB file does not expose plaintext passwords        |
+| Stolen cookie                 | The cookie is matched against the database on every request, and it expires | Delete the session row → the user is logged out             |
+| Expired or stale cookie       | Sending you to sign in is a last resort, never a dead end                   | Keep a bad cookie, load any page → you get the sign-in form |
+| Seeing someone else's patient | Ownership is checked on every page and every action, server-side            | Open someone else's patient URL → you get a 404             |
+| Downloading files             | File downloads re-check ownership on the server                             | Request another program's file URL → 403/404                |
+| Uploading files               | Type, size (≤25 MB), and filename extension are validated                   | Try `.exe` or a giant file → rejected                       |
+| Secrets                       | No real secrets are committed to the repo                                   | `.env` is git-ignored                                       |
+| Patient safety                | All data carries a "Synthetic — demo" badge and the UI repeats the warning  | Banner on every dashboard                                   |
+
+### Why being signed out never traps you
+
+There are two places that notice a session, and they are not equally able to judge it.
+
+`src/middleware.ts` runs before every page, on infrastructure that cannot open the database.
+All it can see is whether a session cookie is _present_, so all it does with that is send a
+visitor with no cookie at all to the sign-in page. It never tries to prove a session is real.
+
+`src/app/login/page.tsx` is the first layer that can actually resolve the cookie against the
+sessions table, so that is where "you are already signed in, go to your programs" is decided.
+
+The reason this is spelled out is a bug that lived here for a while. The middleware used to
+also bounce anyone _holding_ a cookie away from the sign-in page, on the assumption that a
+cookie means a valid session. A cookie can stop meaning that: sessions expire, rows get
+cleaned up, and re-seeding the database drops them all while the browser keeps its copy. That
+turned into an endless loop — the program list sent you to sign in, the sign-in page sent you
+back to the program list — with the sign-in form itself unreachable. The only escape was
+clearing your browser data.
+
+The rule the code now follows: **check what you can actually verify, and never use a cheap
+signal as if it were an expensive one.** Middleware checks presence, which is cheap, and stops
+there. Anything that treats a cookie as a session waits until it can resolve it. Both halves
+are pinned by tests in `src/middleware.test.ts` and `src/app/login/page.test.tsx`, including a
+test that walks the whole request cycle to prove it terminates.
 
 ---
 
@@ -285,7 +311,8 @@ src/
     files/                Upload validation, storage, and preview parsing
     browser/              Client-safe storage helpers (onboarding progress)
     seed/                 Synthetic dataset definition
-  middleware.ts           Route protection
+  middleware.ts           Route protection: sends cookie-less visitors to sign in, nothing more
+  components/auth/        Sign-in form (the page decides whether to show it)
 scripts/                  setup.ts (fresh DB) and seed.ts (demo data)
 drizzle/                  Auto-generated migration SQL
 data/                     SQLite file + uploaded files (git-ignored)
