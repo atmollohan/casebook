@@ -10,9 +10,19 @@ import {
   getProgramForResearcher,
   findPatientById,
   logHistory,
+  setProgramStatus,
 } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
-import { PROGRAM_STATUSES, CONSENT_STATUSES, SEX_VALUES } from "@/lib/constants";
+import {
+  PROGRAM_STATUSES,
+  PROGRAM_STATUS_LABELS,
+  PROGRAM_INITIAL_STATUSES,
+  PROGRAM_DEFAULT_STATUS,
+  CONSENT_STATUSES,
+  SEX_VALUES,
+  canTransitionProgram,
+  type ProgramStatus,
+} from "@/lib/constants";
 import { now } from "@/lib/utils/format";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string[] | undefined> };
@@ -36,6 +46,9 @@ const createPatientSchema = z.object({
   programDescription: z.string().max(2000).optional().default(""),
   programHypothesis: z.string().max(2000).optional().default(""),
   focusArea: z.string().max(200).optional().default(""),
+  // Only the statuses a program can be born in. An untouched select still submits a value,
+  // so the default is a real entry point rather than "whatever was missing".
+  status: z.enum(PROGRAM_INITIAL_STATUSES).default(PROGRAM_DEFAULT_STATUS),
 });
 
 export async function createPatientAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -51,6 +64,7 @@ export async function createPatientAction(_prev: FormState, formData: FormData):
     programDescription: formData.get("programDescription") || "",
     programHypothesis: formData.get("programHypothesis") || "",
     focusArea: formData.get("focusArea") || "",
+    status: formData.get("status") || undefined,
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -89,6 +103,53 @@ export async function updateProgramAction(_prev: FormState, formData: FormData):
   updateProgram(getDb(), user, programId, parsed.data);
   revalidatePath(typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`);
   return { error: undefined };
+}
+
+const programStatusSchema = z.object({
+  programId: z.string().min(1),
+  patientId: z.string().optional(),
+  status: z.enum(PROGRAM_STATUSES),
+});
+
+/**
+ * Move a research program to the next state in its lifecycle — the "planned → active" step,
+ * and every move after it.
+ *
+ * The action, not the control, decides whether a move is legal: the form only ever offers
+ * the targets in `PROGRAM_STATUS_TRANSITIONS`, but a request can carry anything, so the same
+ * table is checked here before the repo is touched. Without that, the lifecycle would be a
+ * UI suggestion rather than a rule.
+ */
+export async function updateProgramStatusAction(
+  _prev: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  const parsed = programStatusSchema.safeParse({
+    programId: formData.get("programId"),
+    patientId: formData.get("patientId") || undefined,
+    status: formData.get("status"),
+  });
+  if (!parsed.success) return { error: "Invalid status update." };
+  const { programId, patientId, status } = parsed.data;
+
+  // Scoped to the signed-in researcher, so this is both the authorization check and the
+  // source of the status being moved from.
+  const program = getProgramForResearcher(getDb(), programId, user.id);
+  if (!program) return { error: "Program not found." };
+
+  const from = program.program.status as ProgramStatus;
+  if (!PROGRAM_STATUSES.includes(from) || !canTransitionProgram(from, status)) {
+    const fromLabel = (PROGRAM_STATUS_LABELS[from] ?? from).toLowerCase();
+    return {
+      error: `This program is ${fromLabel} and cannot move to ${PROGRAM_STATUS_LABELS[status].toLowerCase()}.`,
+    };
+  }
+
+  setProgramStatus(getDb(), user, programId, status);
+  revalidatePath(`/patients/${patientId ?? program.program.patientId}`);
+  revalidatePath("/");
+  return {};
 }
 
 export async function updatePatientNoteAction(_prev: FormState, formData: FormData): Promise<FormState> {

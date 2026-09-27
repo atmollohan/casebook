@@ -77,6 +77,43 @@ export const HELP_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    id: "lifecycle",
+    title: "Moving a program through its lifecycle",
+    blocks: [
+      {
+        kind: "p",
+        text: "A program is not active the moment you create it. When you register a patient you choose whether the program starts as Planned or Active, and a new case defaults to Planned: the investigation is scoped, and the work begins when you are ready. Where a program sits in this lifecycle tells you — and anyone reading the case later — whether the work is scoped, underway, on hold, or finished. The status appears next to the patient's name, so it is visible from every tab, and the moves available to you sit on the Overview tab.",
+      },
+      {
+        kind: "table",
+        head: ["Status", "What it means", "You can move it to"],
+        rows: [
+          [
+            "Planned",
+            "The program is scoped but the investigation has not started.",
+            "Active, to start the work. Closed, if the plan is dropped.",
+          ],
+          ["Active", "The investigation is underway.", "Paused, or Closing to wind it down."],
+          ["Paused", "Work is on hold and can be picked up again.", "Active to resume, or Closing."],
+          [
+            "Closing",
+            "The work is done and the program is being tidied up before it ends.",
+            "Active to reopen, or Closed to finish it.",
+          ],
+          ["Closed", "The program has ended.", "Nothing. This is the final status."],
+        ],
+      },
+      {
+        kind: "p",
+        text: "Each move is a deliberate step rather than a free-text field: only the moves that make sense from where the program currently sits are offered, and the same rule is applied when the request arrives, so a program cannot be moved somewhere the lifecycle does not allow. Every move is recorded in History with the time and the researcher who made it.",
+      },
+      {
+        kind: "note",
+        text: "Closing a program does not delete anything. The data, analyses, findings, evidence, reports, and history all stay exactly where they are and remain readable; closing only says the work has ended.",
+      },
+    ],
+  },
+  {
     id: "uploading",
     title: "Adding data",
     blocks: [
@@ -151,7 +188,7 @@ export const HELP_SECTIONS: HelpSection[] = [
     blocks: [
       {
         kind: "p",
-        text: "History is written for you. Creating a program, uploading or deleting a file, walking an activity through its statuses, recording a finding, adding or removing evidence, and generating or finalizing a report all append an entry with the time and the researcher who did it. Nothing in History is editable.",
+        text: "History is written for you. Creating a program, moving it to a new status, uploading or deleting a file, walking an activity through its statuses, recording a finding, adding or removing evidence, and generating or finalizing a report all append an entry with the time and the researcher who did it. Nothing in History is editable.",
       },
       {
         kind: "p",
@@ -215,6 +252,11 @@ export const HELP_GLOSSARY: Array<{ term: string; definition: string }> = [
     term: "Research program",
     definition:
       "The container for one patient's investigation. It holds the hypothesis, the data, the activities, and the reports.",
+  },
+  {
+    term: "Program status",
+    definition:
+      "Where the program sits in its lifecycle: Planned, Active, Paused, Closing, or Closed. Only the moves that make sense from the current status are offered, and each one is recorded in History.",
   },
   {
     term: "Hypothesis",

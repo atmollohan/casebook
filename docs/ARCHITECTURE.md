@@ -150,6 +150,38 @@ Two things worth noticing:
 - **Every meaningful action is written to the history log automatically.** This gives
   the program a story you can read backwards: what was done, when, and by whom.
 
+### The program lifecycle
+
+A program is not active the moment it is created. It moves through five statuses, and which
+moves are legal from each one is defined in exactly one place,
+`PROGRAM_STATUS_TRANSITIONS` in `src/lib/constants.ts`:
+
+```
+planned ──▶ active ──▶ closing ──▶ closed
+             ▲  │          ▲
+             │  ▼          │
+             └ paused ─────┘        closed is terminal
+```
+
+A program is created in one of the two entry statuses only (`planned`, the default, or
+`active`) — `PROGRAM_INITIAL_STATUSES`. `paused`, `closing`, and `closed` describe work that
+has already happened, so a case cannot be born into one. `planned` is reachable only at
+creation, which is what makes "Start program" the genuine first step of a case.
+
+The rule is enforced twice, on purpose:
+
+- `ProgramStatusControl` (`src/components/workspace/program-status-control.tsx`) reads the
+  table and renders a button per legal move, so the interface cannot offer a step that does
+  not make sense. There is no free-text status field anywhere.
+- `updateProgramStatusAction` (`src/actions/patient.ts`) checks the same table again before
+  the repo is touched. A request can carry any status, so the interface is a convenience and
+  the action is the guarantee. `src/actions/patient.test.ts` proves this by attempting moves
+  the control would never offer.
+
+Every move is written to history as a `program_status` event recording where it came from and
+where it went, attributed to the researcher who made it. Closing a program changes nothing
+else: the data, analyses, findings, evidence, reports, and history all stay readable.
+
 ### The report: an example of a real flow
 
 Generating a report is the app's headline feature, so here is its full journey.
@@ -219,6 +251,12 @@ and a researcher without access is refused at every step. Only the request scope
 
 Everything that touches the database is tested this way rather than against a mock, because a mock cannot
 tell you the query is wrong.
+
+`src/actions/patient.test.ts` covers the two ways a case comes into existence and moves: creating a patient
+and their program (including every optional field left blank, which is how the form actually submits), and
+walking a program through its lifecycle. The lifecycle tests assert the move rules themselves — that the
+table names only real statuses, that nothing is a self-move, that `closed` is terminal, and that no program
+can be stranded without a route to `closed`.
 
 ### Directory layout
 

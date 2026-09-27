@@ -10,6 +10,9 @@ import {
   CONSENT_STATUS_LABELS,
   SEX_VALUES,
   SEX_LABELS,
+  PROGRAM_INITIAL_STATUSES,
+  PROGRAM_STATUS_LABELS,
+  PROGRAM_DEFAULT_STATUS,
   type ConsentStatus,
   type SexValue,
 } from "@/lib/constants";
@@ -100,6 +103,20 @@ export default function NewPatientPage() {
                 Each patient program requires a title; the rest can be filled in later.
               </div>
             </div>
+            <Field
+              label="Starting status"
+              htmlFor="status"
+              error={state.fieldErrors?.status?.[0]}
+              hint="a program is scoped first, and started when the work begins"
+            >
+              <Select id="status" name="status" defaultValue={PROGRAM_DEFAULT_STATUS}>
+                {PROGRAM_INITIAL_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {PROGRAM_STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Field
               label="Program title"
               htmlFor="programTitle"

@@ -12,6 +12,7 @@ import { Card, CardHeader, CardBody, Stat } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ProgramStatusControl } from "@/components/workspace/program-status-control";
 import {
   Database,
   Lightbulb,
@@ -24,7 +25,7 @@ import {
   Sparkles,
   Activity as ActivityIcon,
 } from "lucide-react";
-import { SIGNIFICANCE_LABELS, type SignificanceLevel } from "@/lib/constants";
+import { SIGNIFICANCE_LABELS, type SignificanceLevel, type ProgramStatus } from "@/lib/constants";
 import { timeAgo, formatDate } from "@/lib/utils/format";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -80,9 +81,11 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
             <CardHeader
               title="Research program"
               aside={
-                <Badge dot tone={found.program.status === "active" ? "green" : "slate"}>
-                  {found.program.status}
-                </Badge>
+                <ProgramStatusControl
+                  programId={found.program.id}
+                  patientId={found.patient.id}
+                  current={found.program.status as ProgramStatus}
+                />
               }
             />
             <CardBody>

@@ -32,6 +32,15 @@ import type {
   EvidenceSourceType,
   HistoryEventType,
 } from "@/lib/constants";
+import { PROGRAM_STATUS_LABELS, PROGRAM_DEFAULT_STATUS } from "@/lib/constants";
+
+/**
+ * A stored status rendered for a human. Tolerates a value that is no longer a known status
+ * rather than rendering `undefined` into a history line.
+ */
+function programStatusLabel(status: string): string {
+  return PROGRAM_STATUS_LABELS[status as ProgramStatus] ?? status;
+}
 
 // ---------------------------------------------------------------------------
 // Users
@@ -202,6 +211,7 @@ export function createPatientAndProgram(
     programDescription?: string;
     programHypothesis?: string;
     focusArea?: string;
+    status?: ProgramStatus;
   },
 ): { patient: Patient; program: ResearchProgram } {
   const patientId = newId("pat");
@@ -228,7 +238,7 @@ export function createPatientAndProgram(
     description: input.programDescription?.trim() || null,
     hypothesis: input.programHypothesis?.trim() || null,
     focusArea: input.focusArea?.trim() || null,
-    status: "active",
+    status: input.status ?? PROGRAM_DEFAULT_STATUS,
     createdAt: nowMs,
     updatedAt: nowMs,
   };
@@ -275,6 +285,38 @@ export function updateProgram(
     entityId: programId,
     summary: "Research program details updated",
   });
+}
+
+/**
+ * Move a program to a new status and leave the move in the case history.
+ *
+ * The lifecycle itself (which move is legal) is `canTransitionProgram`, enforced by the
+ * server action before this is called — this function is the data layer and does not
+ * second-guess it. It records where the program came from as well as where it went, because
+ * "planned to active" is the fact a reader of the timeline actually needs.
+ *
+ * Returns null when the program does not exist, so a caller racing a delete finds out.
+ */
+export function setProgramStatus(
+  db: Db,
+  user: User,
+  programId: string,
+  status: ProgramStatus,
+): ResearchProgram | null {
+  const program = db.select().from(researchPrograms).where(eq(researchPrograms.id, programId)).get();
+  if (!program) return null;
+  const updatedAt = now();
+  db.update(researchPrograms).set({ status, updatedAt }).where(eq(researchPrograms.id, programId)).run();
+  logHistory(db, {
+    programId,
+    actorId: user.id,
+    eventType: "program_status",
+    entityType: "research_program",
+    entityId: programId,
+    summary: `Program status changed from ${programStatusLabel(program.status)} to ${programStatusLabel(status)}`,
+    metadataJson: JSON.stringify({ from: program.status, to: status }),
+  });
+  return { ...program, status, updatedAt };
 }
 
 // ---------------------------------------------------------------------------

@@ -9,6 +9,44 @@ export const PROGRAM_STATUS_LABELS: Record<ProgramStatus, string> = {
   closed: "Closed",
 };
 
+/**
+ * Which status may follow which. The one place the program lifecycle is defined: the server
+ * action refuses a move that is not listed here, and the control in the workspace offers
+ * exactly the listed targets, so the two cannot disagree.
+ *
+ * The shape of the lifecycle: a program is scoped before it starts (`planned`), runs
+ * (`active`), can be held (`paused`) and resumed, is wound down deliberately (`closing`),
+ * and ends `closed`. `closed` is terminal, and every other status can still reach it, so no
+ * case can be stranded.
+ */
+export const PROGRAM_STATUS_TRANSITIONS: Record<ProgramStatus, readonly ProgramStatus[]> = {
+  planned: ["active", "closed"],
+  active: ["paused", "closing"],
+  paused: ["active", "closing"],
+  closing: ["active", "closed"],
+  closed: [],
+};
+
+/** True when `to` is a legal next status for a program currently in `from`. */
+export function canTransitionProgram(from: ProgramStatus, to: ProgramStatus): boolean {
+  return PROGRAM_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/**
+ * The statuses a program may be *created* in. A new case starts at the beginning of the
+ * lifecycle, so it cannot be born paused, closing, or closed — those only mean something
+ * once there has been work.
+ */
+export const PROGRAM_INITIAL_STATUSES = ["planned", "active"] as const;
+export type ProgramInitialStatus = (typeof PROGRAM_INITIAL_STATUSES)[number];
+
+/**
+ * A new program is scoped, not started: the common case is registering a case now and
+ * beginning the investigation once the data or a collaborator is in place, and the Overview
+ * tab then offers "Start program" as the first real step.
+ */
+export const PROGRAM_DEFAULT_STATUS: ProgramInitialStatus = "planned";
+
 export const DATA_CATEGORIES = [
   "clinical",
   "genomics",
@@ -130,6 +168,7 @@ export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
 export const HISTORY_EVENT_TYPES = [
   "program_created",
   "program_updated",
+  "program_status",
   "patient_updated",
   "data_uploaded",
   "data_deleted",
