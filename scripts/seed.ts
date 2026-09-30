@@ -18,7 +18,7 @@ async function main() {
   const { runSeed } = await import("@/lib/seed");
   const user = runSeed();
   console.log(
-    `Seed complete. Demo researcher: ${user.name} (${process.env.DEMO_EMAIL ?? "demo@omanta.dev"}).`,
+    `Seed complete. Demo researcher: ${user.name} (${process.env.DEMO_EMAIL ?? "demo@example.com"}).`,
   );
 }
 

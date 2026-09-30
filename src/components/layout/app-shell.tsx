@@ -17,23 +17,26 @@ export function BrandMark({ className }: { className?: string }) {
 
 /**
  * The single persistent home of the synthetic-data statement. The full wording is
- * disclosure-on-demand so it stays visible without competing with the work.
+ * disclosure-on-demand so it stays visible without competing with the work. It separates
+ * the seeded demo content from anything the researcher uploads, because only the former is
+ * synthetic and this instance is expected to hold real files.
  */
 export function SyntheticDataNotice() {
   return (
     <details className="group relative">
       <summary
         className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 [&::-webkit-details-marker]:hidden"
-        title="This environment contains synthetic data only"
+        title="About the seeded demo data"
       >
         <FlaskConical className="size-3.5" />
         <span className="hidden sm:inline">Synthetic demo data</span>
         <span className="sm:hidden">Demo</span>
       </summary>
       <div className="absolute right-0 z-40 mt-2 w-72 rounded-lg border border-amber-200 bg-white p-3 text-[13px] leading-relaxed text-ink-700 shadow-lg">
-        Every patient, clinical detail, uploaded file, finding, report, and analysis result in this
-        environment is <strong className="text-ink-900">synthetic and deidentified</strong>. Nothing here may
-        be used to make clinical decisions.
+        The patients, files, findings, and reports that ship with this app are{" "}
+        <strong className="text-ink-900">synthetic and deidentified</strong>, for trying the workflow out.
+        Anything you upload yourself is your own data and is not marked synthetic. Casebook is not a clinical
+        system and its output is not suitable for clinical decision-making.
       </div>
     </details>
   );
@@ -70,9 +73,7 @@ export function AppShell({ user, children }: { user: User; children: React.React
         <div className="page-container flex h-16 items-center justify-between gap-4">
           <Link href="/" className="focus-ring flex items-center gap-3 rounded-lg">
             <BrandMark />
-            <span className="text-[19px] font-medium leading-none tracking-tight text-ink-900">
-              Omanta Lab
-            </span>
+            <span className="text-[19px] font-medium leading-none tracking-tight text-ink-900">Casebook</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <SyntheticDataNotice />

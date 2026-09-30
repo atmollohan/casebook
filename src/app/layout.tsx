@@ -5,11 +5,11 @@ import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata = {
   title: {
-    default: "Omanta Lab · Research Programs",
-    template: "%s · Omanta Lab",
+    default: "Casebook · Research Programs",
+    template: "%s · Casebook",
   },
   description:
-    "Omanta Lab is a collaborative research workspace for patient programs. Prototype uses synthetic data only.",
+    "Casebook is a self-hosted workspace for genomic casework: upload data, record the analysis, cite the evidence, generate a report.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

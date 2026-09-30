@@ -33,7 +33,7 @@ beforeAll(() => {
   resetDb();
   migrateDb(getDb());
   const user = createUser(getDb(), {
-    email: "test@omanta.dev",
+    email: "test@example.com",
     name: "Dr. Test",
     passwordHash: hashPassword("test-password"),
   });
@@ -57,7 +57,7 @@ function makePatient() {
 describe("patient + program lifecycle", () => {
   it("creates a patient, program, pid, and program_created history event", () => {
     const { patient, program } = makePatient();
-    expect(patient.pid).toMatch(/^OM-P-\d{4}$/);
+    expect(patient.pid).toMatch(/^CB-P-\d{4}$/);
     expect(program.patientId).toBe(patient.id);
 
     const found = findPatientById(getDb(), patient.id, userId);
@@ -78,7 +78,7 @@ describe("patient + program lifecycle", () => {
 
   it("only the owning researcher can see a program", () => {
     const other = createUser(getDb(), {
-      email: "other@omanta.dev",
+      email: "other@example.com",
       name: "Dr. Other",
       passwordHash: hashPassword("x"),
     });
@@ -190,7 +190,11 @@ describe("findings + evidence", () => {
   });
 
   it("blocks access to findings for a non-owner", () => {
-    const other = createUser(getDb(), { email: "o2@omanta.dev", name: "O", passwordHash: hashPassword("x") });
+    const other = createUser(getDb(), {
+      email: "o2@example.com",
+      name: "O",
+      passwordHash: hashPassword("x"),
+    });
     const { program } = makePatient();
     expect(listFindings(getDb(), program.id, other.id)).toBeNull();
   });

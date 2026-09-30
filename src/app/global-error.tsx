@@ -21,7 +21,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
               <AlertTriangle className="size-6" />
             </div>
-            <h1 className="text-lg font-semibold tracking-tight text-ink-900">Omanta Lab could not start</h1>
+            <h1 className="text-lg font-semibold tracking-tight text-ink-900">Casebook could not start</h1>
             <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-ink-700/70">
               The workspace failed to load. If this keeps happening, the local database may need to be
               rebuilt.

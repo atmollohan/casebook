@@ -19,7 +19,7 @@ export function LoginForm() {
       <div className="hidden w-1/2 flex-col justify-between bg-brand-900 p-10 text-white lg:flex">
         <div className="flex items-center gap-3">
           <BrandMark />
-          <span className="text-xl font-medium leading-none tracking-tight text-white">Omanta Lab</span>
+          <span className="text-xl font-medium leading-none tracking-tight text-white">Casebook</span>
         </div>
         <div className="max-w-md">
           <p className="text-4xl font-normal leading-[1.2] tracking-tight text-white">
@@ -31,11 +31,11 @@ export function LoginForm() {
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <BrandMark />
-            <span className="text-xl font-medium leading-none tracking-tight text-ink-900">Omanta Lab</span>
+            <span className="text-xl font-medium leading-none tracking-tight text-ink-900">Casebook</span>
           </div>
           <h1 className="text-3xl font-normal tracking-tight text-ink-900">Sign in</h1>
           <p className="mt-2 text-sm text-ink-700/70">
-            Researcher access. This environment runs on synthetic patient data only.
+            Researcher access. Accounts are created by running the seed script locally.
           </p>
           <form action={formAction} className="mt-8 space-y-4">
             <Field label="Email" htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
@@ -78,7 +78,7 @@ export function LoginForm() {
               Representative researcher account is pre-seeded with a demo program catalog.
             </p>
             <pre className="mt-3 rounded-lg bg-white px-3 py-2.5 text-xs leading-relaxed text-ink-700">
-              demo@omanta.dev
+              demo@example.com
               <br />
               demo-password
             </pre>

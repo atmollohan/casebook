@@ -14,7 +14,7 @@ vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 vi.mock("@/lib/server/auth", () => ({
   requireUser: async () => {
     if (!currentUserId) throw new Error("redirect:/login");
-    return { id: currentUserId, email: "user@omanta.dev", name: "User" };
+    return { id: currentUserId, email: "user@example.com", name: "User" };
   },
 }));
 
@@ -39,12 +39,12 @@ beforeAll(() => {
   resetDb();
   migrateDb(getDb());
   const owner = createUser(getDb(), {
-    email: "owner@omanta.dev",
+    email: "owner@example.com",
     name: "Dr. Owner",
     passwordHash: hashPassword("owner-password"),
   });
   const other = createUser(getDb(), {
-    email: "other@omanta.dev",
+    email: "other@example.com",
     name: "Dr. Other",
     passwordHash: hashPassword("other-password"),
   });
@@ -132,7 +132,7 @@ describe("finalizeReportAction", () => {
     const created = createReport(getDb(), {
       programId: ownerProgramId,
       generatedById: ownerId,
-      title: "Research report — OM-P-9999",
+      title: "Research report — CB-P-9999",
       summary: "summary",
       contentJson: "[]",
     });
@@ -152,7 +152,7 @@ describe("finalizeReportAction", () => {
     const created = createReport(getDb(), {
       programId: ownerProgramId,
       generatedById: ownerId,
-      title: "Research report — OM-P-9998",
+      title: "Research report — CB-P-9998",
       summary: "summary",
       contentJson: "[]",
     });

@@ -1,4 +1,4 @@
-# AGENTS.md — Working Agreement for Omanta Lab
+# AGENTS.md — Working Agreement for Casebook
 
 This file is the contract for any human or AI agent changing this repository. Read it before
 editing code. It exists because this app is developed conversationally ("vibecoded"): the
@@ -53,19 +53,26 @@ run the full `npm run verify` at the end.
 
 ## 3. What this application is
 
-- A **synthetic-data research workspace** for rare-disease-style case work: programs →
-  patients → data / activities / findings / evidence / history / reports.
+- A **self-hosted research workspace** for casework: a researcher uploads data, records the
+  analyses they run, notes what they concluded, cites the evidence, and generates a report.
+  The focus is DNA and oncology; the workflow suits any data investigation.
 - **Not** a clinical tool. **Not** a diagnostic or decision-support system.
-- All seeded and demo data is synthetic and deidentified. See `.planning/PROJECT.md` and
-  `.planning/ASSUMPTIONS.md` for the full constraint set and the open product/legal questions.
+- The **seeded** demo content is synthetic and deidentified. Content the owner uploads is their own
+  data — the app does not mark it synthetic, because it cannot know its provenance. See
+  `.planning/PROJECT.md` and `.planning/ASSUMPTIONS.md` (especially #21) for the constraint set.
 
 ### Non-negotiable safety rules
 
-1. **Synthetic data only.** Never wire in real patient data, real identifiers, or a real
-   clinical data source. There is no "just for testing" exception here.
+1. **Never wire in real data as part of the project.** The project must not connect to a real
+   patient, a real identifier, or a real clinical data source, and no fixture, seed, or test may
+   contain real health information. This is about what the _project_ introduces — it is not a claim
+   that the app is incapable of holding a researcher's own files, which is its whole purpose. When
+   describing content, report its actual provenance: a seeded item is synthetic, an uploaded item
+   is the researcher's own, and the app does not guess.
 2. **No compliance claims.** Do not write "HIPAA compliant", "HIPAA-ready", "secure", or
-   "production-ready for healthcare" in UI copy, code comments, docs, or commit messages.
-   Compliance is Phase 10 work with explicit sign-off; until then, describe what the code does.
+   "production-ready for healthcare" in UI copy, code comments, docs, or commit messages. There is no
+   compliance program and none is planned. Describe what the code does, and where the app's
+   protections stop, say so plainly.
 3. **Authorized access on every read and write.** Every data path starts with
    `requireUser()` (or equivalent session check) and then scopes the query to records the
    user may access. Session cookies are `httpOnly` and `sameSite=lax`; passwords are hashed

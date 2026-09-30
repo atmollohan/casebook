@@ -121,6 +121,9 @@ export function generateReportContent(db: Db, programId: string, userId: string)
 
   // 3. Research data
   if (data.length > 0) {
+    // Only the bundled demo seed is known to be synthetic. Files the researcher uploaded are
+    // their own, so the report never asserts a provenance it cannot support.
+    const demoAssetCount = data.filter((d) => d.isSynthetic).length;
     sections.push({
       title: "Research data",
       blocks: [
@@ -136,7 +139,7 @@ export function generateReportContent(db: Db, programId: string, userId: string)
         },
         {
           type: "note",
-          text: `${data.length} asset${data.length === 1 ? "" : "s"} catalogued in this program. All assets are synthetic demo data.`,
+          text: `${data.length} asset${data.length === 1 ? "" : "s"} catalogued in this program.${demoAssetCount > 0 ? ` ${demoAssetCount} of them are synthetic demo content rather than your own data.` : ""}`,
         },
       ],
     });
@@ -252,7 +255,7 @@ export function generateReportContent(db: Db, programId: string, userId: string)
     blocks: [
       {
         type: "quote",
-        text: "This report was assembled automatically from the research program workspace. All patient data, uploaded assets, findings, and evidence in this environment are SYNTHETIC/deidentified and are not suitable for clinical decision-making. This document is a workflow demonstration, not a validated clinical or laboratory report.",
+        text: "This report was assembled automatically from the research program workspace. It is a record of research work, not a validated clinical or laboratory report, and it is not suitable for clinical decision-making. Content taken from the bundled demo seed is synthetic and deidentified.",
       },
       {
         type: "note",

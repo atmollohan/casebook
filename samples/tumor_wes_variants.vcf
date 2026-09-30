@@ -1,6 +1,6 @@
 ##fileformat=VCFv4.2
 ##fileDate=20260101
-##source=OmantaLabSyntheticDemo
+##source=CasebookSyntheticDemo
 ##reference=synthetic-reference-v1
 ##contig=<ID=1,length=248956422>
 ##contig=<ID=2,length=242193529>

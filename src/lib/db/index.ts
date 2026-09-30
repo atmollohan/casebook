@@ -7,7 +7,7 @@ import * as schema from "./schema";
 
 function resolveDbFile(): string {
   const configured = process.env.DATABASE_FILE;
-  const file = configured && configured.trim().length > 0 ? configured : "./data/omanta.db";
+  const file = configured && configured.trim().length > 0 ? configured : "./data/casebook.db";
   return path.resolve(process.cwd(), file);
 }
 

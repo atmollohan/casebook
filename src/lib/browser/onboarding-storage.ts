@@ -8,7 +8,7 @@ export interface OnboardingState {
 
 export type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
-export const ONBOARDING_STORAGE_KEY = "omanta.onboarding.v1";
+export const ONBOARDING_STORAGE_KEY = "casebook.onboarding.v1";
 
 const DEFAULT_STATE: OnboardingState = { dismissed: false, done: [] };
 

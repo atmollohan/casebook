@@ -26,6 +26,6 @@ export function dbFile(): string {
   const configured = process.env.DATABASE_FILE;
   return path.resolve(
     process.cwd(),
-    configured && configured.trim().length > 0 ? configured : "./data/omanta.db",
+    configured && configured.trim().length > 0 ? configured : "./data/casebook.db",
   );
 }

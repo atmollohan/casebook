@@ -26,7 +26,7 @@ export type HelpSection = {
 };
 
 export const HELP_INTRO =
-  "Omanta Lab keeps everything about one patient investigation in one place: the data you upload, the analyses you run, what you conclude from them, and the report you hand off at the end.";
+  "Casebook keeps everything about one patient investigation in one place: the data you upload, the analyses you run, what you conclude from them, and the report you hand off at the end.";
 
 export const HELP_SECTIONS: HelpSection[] = [
   {
@@ -198,11 +198,15 @@ export const HELP_SECTIONS: HelpSection[] = [
   },
   {
     id: "environment",
-    title: "This environment",
+    title: "This workspace",
     blocks: [
       {
         kind: "p",
-        text: "This build runs on fabricated data. The badge in the header carries the full disclosure and is worth reading before you show the workspace to anyone.",
+        text: "The workspace starts life with a few fabricated demo cases so you can try the workflow without your own files in it. The badge in the header carries the full disclosure and is worth reading before you show a report to anyone. Anything you upload yourself is your own data and is not treated as synthetic.",
+      },
+      {
+        kind: "p",
+        text: "Everything lives on the machine running the app: the database is a single file under the data folder, and uploaded files sit beside it. Backing the app up means copying that folder.",
       },
       {
         kind: "p",

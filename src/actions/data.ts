@@ -62,7 +62,9 @@ export async function uploadDataAction(_prev: DataFormState, formData: FormData)
     sizeBytes: stored.sizeBytes,
     storagePath: stored.storagePath,
     description,
-    isSynthetic: true,
+    // The upload came from the researcher, not the bundled demo seed. The app cannot know
+    // its provenance, so it records "not demo content" rather than claiming it is synthetic.
+    isSynthetic: false,
   });
 
   revalidatePath(base);

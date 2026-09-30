@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 process.env.TEST_DATABASE = "memory";
 process.env.DATABASE_FILE = ":memory:";
-process.env.SESSION_COOKIE = "omanta_session";
+process.env.SESSION_COOKIE = "casebook_session";
 
 /**
  * The sign-in boundary, end to end, against a real session store.
@@ -50,7 +50,7 @@ let liveToken: string;
 beforeAll(() => {
   migrateDb(getDb());
   const user = createUser(getDb(), {
-    email: "researcher@omanta.test",
+    email: "researcher@casebook.test",
     name: "Researcher One",
     passwordHash: hashPassword("correct-horse"),
   });

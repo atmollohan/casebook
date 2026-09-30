@@ -51,7 +51,7 @@ function vcfHeader(sample: string, source: string) {
   return [
     "##fileformat=VCFv4.2",
     `##fileDate=20260101`,
-    `##source=OmantaLabSyntheticDemo`,
+    `##source=CasebookSyntheticDemo`,
     `##reference=synthetic-reference-v1`,
     `##contig=<ID=1,length=248956422>`,
     `##contig=<ID=2,length=242193529>`,
@@ -188,12 +188,20 @@ function gffFile() {
     "##gff-version 3",
     `# ${GENERATED}`,
     ...GENES.flatMap((g) => [
-      [g.chrom, "OmantaDemo", "gene", g.start, g.end, ".", "+", ".", `ID=gene:${g.name};Name=${g.name}`].join(
-        "\t",
-      ),
       [
         g.chrom,
-        "OmantaDemo",
+        "CasebookDemo",
+        "gene",
+        g.start,
+        g.end,
+        ".",
+        "+",
+        ".",
+        `ID=gene:${g.name};Name=${g.name}`,
+      ].join("\t"),
+      [
+        g.chrom,
+        "CasebookDemo",
         "mRNA",
         g.start,
         g.end,

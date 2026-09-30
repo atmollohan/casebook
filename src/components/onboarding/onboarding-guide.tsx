@@ -116,7 +116,7 @@ export function OnboardingGuide({
           </span>
           <div className="min-w-0">
             <h2 className="text-[15px] font-semibold tracking-tight text-ink-900">
-              {firstVisit ? "Welcome to Omanta Lab" : "How this works"}
+              {firstVisit ? "Welcome to Casebook" : "How this works"}
             </h2>
             <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-700/75">{WORKFLOW}</p>
           </div>

@@ -65,13 +65,13 @@ describe("loadOnboardingState", () => {
 
   it("returns the default state when the stored value is malformed JSON", () => {
     const storage = memoryStorage();
-    storage.setItem("omanta.onboarding.v1", "{not valid json");
+    storage.setItem("casebook.onboarding.v1", "{not valid json");
     expect(loadOnboardingState(storage)).toEqual({ dismissed: false, done: [] });
   });
 
   it("returns the default state when the stored value is an unknown shape", () => {
     const storage = memoryStorage();
-    storage.setItem("omanta.onboarding.v1", JSON.stringify({ dismissed: false, done: "all" }));
+    storage.setItem("casebook.onboarding.v1", JSON.stringify({ dismissed: false, done: "all" }));
     expect(loadOnboardingState(storage)).toEqual({ dismissed: false, done: [] });
   });
 

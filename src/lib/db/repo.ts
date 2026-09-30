@@ -190,11 +190,11 @@ export function nextPatientPid(db: Db): string {
   // deletion (Phase 8) remove rows, and a count would then hand back a pid that is already
   // taken, failing the unique index on an otherwise valid create.
   const row = db
-    .select({ n: sql<number | null>`max(cast(replace(${patients.pid}, 'OM-P-', '') as integer))` })
+    .select({ n: sql<number | null>`max(cast(replace(${patients.pid}, 'CB-P-', '') as integer))` })
     .from(patients)
     .get();
   const highest = row?.n ?? 0;
-  return `OM-P-${String(highest + 1).padStart(4, "0")}`;
+  return `CB-P-${String(highest + 1).padStart(4, "0")}`;
 }
 
 export function createPatientAndProgram(

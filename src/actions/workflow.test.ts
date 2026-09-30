@@ -7,7 +7,7 @@ process.env.DATABASE_FILE = ":memory:";
 
 // Uploads in this suite write real bytes, so point storage at a temp dir before anything
 // can read the setting. Never the project's data dir.
-const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omanta-workflow-"));
+const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "casebook-workflow-"));
 process.env.DATA_DIR = TMP_DIR;
 
 /**
@@ -79,13 +79,13 @@ beforeAll(() => {
   resetDb();
   migrateDb(getDb());
   const owner = createUser(getDb(), {
-    email: "owner@omanta.dev",
+    email: "owner@example.com",
     name: "Dr. Rosalind Franklin",
     passwordHash: hashPassword("owner-password"),
     title: "Principal Investigator",
   });
   const stranger = createUser(getDb(), {
-    email: "stranger@omanta.dev",
+    email: "stranger@example.com",
     name: "Dr. Unrelated",
     passwordHash: hashPassword("stranger-password"),
     title: "Researcher",
@@ -148,7 +148,9 @@ describe("case lifecycle", () => {
     const files = listDataRecords(getDb(), programId, ownerId)!;
     expect(files).toHaveLength(1);
     expect(files[0].title).toBe("Serial blood counts");
-    expect(files[0].isSynthetic).toBe(true);
+    // Provenance is reported, not assumed: an upload came from the researcher, not the
+    // bundled demo seed, so the app does not label it synthetic.
+    expect(files[0].isSynthetic).toBe(false);
 
     // Bytes are on disk under the program's directory, and the stored path is relative
     // so the data dir can move without rewriting rows.

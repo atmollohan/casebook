@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const SESSION_COOKIE = process.env.SESSION_COOKIE ?? "omanta_session";
+const SESSION_COOKIE = process.env.SESSION_COOKIE ?? "casebook_session";
 const PUBLIC_PATHS = ["/login"];
 
 const isPublic = (pathname: string) =>

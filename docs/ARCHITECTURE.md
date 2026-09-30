@@ -1,28 +1,33 @@
-# Omanta Lab — How the prototype works (plain-English)
+# Casebook — How the app works (plain-English)
 
-This document explains Omanta to anyone: a doctor, a researcher, an investor, or a
-developer who just joined. No jargon is required to read the first few sections; the
-technical details are kept at the end for people who want them.
+This document explains Casebook to anyone: a researcher, a clinician, or a developer who just
+joined. No jargon is required to read the first few sections; the technical details are kept at
+the end for people who want them.
 
 If you want the fastest possible picture: read **Part 1**, **Part 2**, and **Part 3**.
 Everything else is depth.
 
 ---
 
-## Part 1 — What Omanta is, in one paragraph
+## Part 1 — What Casebook is, in one paragraph
 
-The long-term product direction is a shared case workspace for Omanta's research team and
-patients, intended to be hosted at `lab.omanta.com`. That direction is engineer-stated and not
-yet validated with the founder, researchers, or patients. The implementation described here is
-still a single-researcher synthetic-data prototype and is not ready for patient accounts or real
-patient data.
+Casebook is a **self-hosted web app for one researcher working on genomic data**. You run it
+on your own machine, you are the only user, and nothing leaves the box. The seed data it ships
+with is synthetic; if you intend to put real files in it, read [Part 4](#part-4--security-at-the-level-a-non-expert-can-verify)
+first, because self-hosted is not the same as safe to expose to a network.
 
-Omanta is a workspace where a **researcher keeps track of the scientific work being
-done on one patient's case**. It is not a medical record and it is not a lab system.
-It is the "lab notebook plus project folder" for a research investigation.
+It is a workspace where a **researcher keeps track of the scientific work being done on one
+patient's case**. It is not a medical record and it is not a lab information system. It is the
+"lab notebook plus project folder" for a research investigation: somewhere to keep the files you
+downloaded, write down what you did to them, record what you concluded, cite where that came
+from, and generate a report when you need to hand the story to someone else.
 
-Every patient in Phase 0 is **synthetic and de-identified** — fake names, fake data,
-fake results. Nothing here may be used to make a clinical decision.
+The focus is DNA and oncology, and the sample data and file-format allowlist reflect that
+(VCF, BED, GFF, FASTA, WES calls). The workflow itself is not genomics-specific — it is
+upload → analyze → conclude → cite → report, which suits any kind of data investigation.
+
+Every patient in the seeded demo is **synthetic and de-identified** — fake names, fake data,
+fake results. Nothing the app produces may be used to make a clinical decision.
 
 The whole app is about one spine:
 
@@ -134,7 +139,7 @@ happens. There are no shortcuts:
         │  typed queries built by Drizzle
         │  checks ownership again
         ▼
-4. SQLITE DATABASE   (data/omanta.db, a single file on disk)
+4. SQLITE DATABASE   (data/casebook.db, a single file on disk)
         │
         ▼
 5. HISTORY is appended automatically
@@ -205,7 +210,7 @@ the only action that freezes the content permanently.
 
 ## Part 4 — Security, at the level a non-expert can verify
 
-Phase 0 is a synthetic-data demo, but the security habits are real. These are the
+The seeded demo is synthetic data, but the security habits are real. These are the
 checks that matter and where each one lives:
 
 | Concern                       | What the app does                                                           | Concrete checks you can run yourself                        |
@@ -254,7 +259,7 @@ test that walks the whole request cycle to prove it terminates.
 | ---------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Framework  | Next.js 15 (App Router), TypeScript                         | `src/app/`                                                                  |
 | Styling    | Tailwind CSS v3                                             | `src/app/globals.css`, `tailwind.config.ts`                                 |
-| Database   | SQLite via better-sqlite3 (single file)                     | `data/omanta.db`                                                            |
+| Database   | SQLite via better-sqlite3 (single file)                     | `data/casebook.db`                                                          |
 | Data layer | Drizzle ORM (schema + typed queries + migrations)           | `src/lib/db/`                                                               |
 | Auth       | Hand-rolled: bcryptjs + DB session tokens + httpOnly cookie | `src/lib/auth/`                                                             |
 | Uploads    | Local disk under `data/storage/`, random filenames          | `src/lib/files/`                                                            |

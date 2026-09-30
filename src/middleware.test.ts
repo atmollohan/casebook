@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-process.env.SESSION_COOKIE = "omanta_session";
+process.env.SESSION_COOKIE = "casebook_session";
 
 import { describe, expect, it } from "vitest";
 import { middleware, config } from "@/middleware";
@@ -15,12 +15,12 @@ import { middleware, config } from "@/middleware";
  * asserted here as a property of the request cycle rather than as a single response.
  */
 
-const COOKIE = "omanta_session";
+const COOKIE = "casebook_session";
 
 function request(path: string, token?: string) {
   const headers = new Headers();
   if (token) headers.set("cookie", `${COOKIE}=${token}`);
-  return new NextRequest(`https://omanta.test${path}`, { headers });
+  return new NextRequest(`https://casebook.test${path}`, { headers });
 }
 
 /** Where a response sends the browser, or null when it does not redirect. */
@@ -83,7 +83,7 @@ describe("a stale session token", () => {
       // Layer 1: middleware.
       const response = middleware(request(path, token));
       if (isRedirect(response)) {
-        path = new URL(locationOf(response)!, "https://omanta.test").pathname;
+        path = new URL(locationOf(response)!, "https://casebook.test").pathname;
         continue;
       }
 

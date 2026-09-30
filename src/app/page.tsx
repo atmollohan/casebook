@@ -22,7 +22,7 @@ export default async function DashboardPage({
     reports: programs.reduce((n, p) => n + p.reportCount, 0),
   };
 
-  const flagship = programs.find((p) => p.patient.pid === "OM-P-0001") ?? null;
+  const flagship = programs.find((p) => p.patient.pid === "CB-P-0001") ?? null;
   let onboardingTarget: OnboardingTarget | null = null;
   if (flagship) {
     const reports = listReports(getDb(), flagship.program.id, user.id) ?? [];

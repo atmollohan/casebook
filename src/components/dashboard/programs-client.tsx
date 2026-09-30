@@ -79,7 +79,7 @@ export function ProgramsClient({ programs }: { programs: ProgramSummary[] }) {
             </div>
             <h3 className="text-[15px] font-semibold text-ink-900">No research programs yet</h3>
             <p className="mt-1 max-w-md text-sm text-ink-700/70">
-              Enroll your first synthetic patient and start a research program to populate this workspace.
+              Enroll a patient and start a research program to populate this workspace.
             </p>
             <div className="mt-5">
               <ButtonLink href="/patients/new">New patient program</ButtonLink>

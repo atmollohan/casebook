@@ -45,9 +45,14 @@ export default async function ReportViewerPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <div className="print-hide mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
-        Draft workflow demonstration. All contents are synthetic demo data and not suitable for clinical
-        decision-making.
+      <div
+        className={`print-hide mb-4 rounded-lg border px-4 py-2.5 text-sm ${
+          isFinal ? "border-ink-200 bg-ink-50 text-ink-700" : "border-amber-200 bg-amber-50 text-amber-900"
+        }`}
+      >
+        {isFinal
+          ? "Finalized research report. This is a record of research work, not a clinical document."
+          : "Draft — not yet finalized. This is a record of research work, not a clinical document."}
       </div>
 
       <article className="card print-card mx-auto max-w-3xl px-8 py-10 sm:px-12">
@@ -93,7 +98,7 @@ export default async function ReportViewerPage({ params }: { params: Promise<{ i
 
         <footer className="mt-10 flex items-center gap-2 border-t border-ink-100 pt-4 text-[13px] text-ink-700/60">
           <ShieldCheck className="size-4" />
-          Synthetic research workspace output · reviewed by {user.name}
+          Research report output · reviewed by {user.name}
         </footer>
       </article>
     </div>

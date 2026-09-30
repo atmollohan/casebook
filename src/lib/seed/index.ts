@@ -20,7 +20,7 @@ interface SeedCtx {
 }
 
 function seedUser(db: Db): { id: string; name: string } {
-  const email = process.env.DEMO_EMAIL ?? "demo@omanta.dev";
+  const email = process.env.DEMO_EMAIL ?? "demo@example.com";
   const password = process.env.DEMO_PASSWORD ?? "demo-password";
   const found = db.$client.prepare("select * from users where email = ?").get(email) as
     schema.User | undefined;
@@ -316,7 +316,7 @@ SETD2,c.7066C>T (p.Arg2356Trp),3,47152845,C,T,snv,missense_variant,0.13,54,415,E
 CHD2,c.4834G>A (p.Val1612Met),15,93418985,G,A,snv,missense_variant,0.1,40,410,ENST00000534291,unknown`;
 
 const CLL_SV_VCF = `##fileformat=VCFv4.2
-##source=omanta-synthetic-sv-tool-v1 (DEMO)
+##source=casebook-synthetic-sv-tool-v1 (DEMO)
 ##fileDate=2026-06-08
 ##reference=GRCh38
 ##contig=<ID=17>
@@ -420,7 +420,7 @@ export function runSeed() {
   fs.mkdirSync(resolveDataDir(), { recursive: true });
   const db = getDb();
   const user = seedUser(db);
-  const alreadySeeded = db.$client.prepare("select id from patients where pid = ?").get("OM-P-0001") as
+  const alreadySeeded = db.$client.prepare("select id from patients where pid = ?").get("CB-P-0001") as
     { id: string } | undefined;
   if (alreadySeeded) {
     console.log("Seed data already present; skipping patient seeding.");
@@ -430,7 +430,7 @@ export function runSeed() {
 
   // --- Patient 1: flagship, fully built out --------------------------------
   const pat1 = createPatientProgram(ctx, {
-    pid: "OM-P-0001",
+    pid: "CB-P-0001",
     firstName: "Patricia",
     lastName: "Okafor",
     birthYear: 1969,
@@ -650,7 +650,7 @@ export function runSeed() {
 
   // --- Patient 2: mid-maturity --------------------------------------------
   const pat2 = createPatientProgram(ctx, {
-    pid: "OM-P-0002",
+    pid: "CB-P-0002",
     firstName: "Marcus",
     lastName: "Whitfield",
     birthYear: 1974,
@@ -735,7 +735,7 @@ export function runSeed() {
 
   // --- Patient 3: fresh enrollment (empty states) --------------------------
   createPatientProgram(ctx, {
-    pid: "OM-P-0003",
+    pid: "CB-P-0003",
     firstName: "Elena",
     lastName: "Kovalski",
     birthYear: 1988,
@@ -756,7 +756,7 @@ export function runSeed() {
 
   // --- Patient 4: paused ------------------------------------------------
   const pat4 = createPatientProgram(ctx, {
-    pid: "OM-P-0004",
+    pid: "CB-P-0004",
     firstName: "Raymond",
     lastName: "Silva",
     birthYear: 1952,

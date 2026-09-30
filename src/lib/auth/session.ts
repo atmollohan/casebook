@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 
-export const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE ?? "omanta_session";
+export const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE ?? "casebook_session";
 
 export function sessionTtlDays(): number {
   const raw = Number(process.env.SESSION_TTL_DAYS);
