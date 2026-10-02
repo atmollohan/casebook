@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { listEvidenceForProgram, listFindings, findPatientById } from "@/lib/db/repo";
+import { listEvidenceForProgram, listFindings, findCaseById } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,7 @@ export default async function EvidenceTabPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
   const evidence = listEvidenceForProgram(db, found.program.id, user.id) ?? [];
   const findings = listFindings(db, found.program.id, user.id) ?? [];
@@ -69,7 +69,7 @@ export default async function EvidenceTabPage({ params }: { params: Promise<{ id
                     <span>Supports</span>
                     {finding ? (
                       <Link
-                        href={`/patients/${id}/findings#finding-${finding.id}`}
+                        href={`/cases/${id}/findings#finding-${finding.id}`}
                         className="inline-flex items-center gap-1.5 font-medium text-ink-900 hover:text-brand-700"
                       >
                         <FlaskConical className="size-3.5 text-ink-700/40" />

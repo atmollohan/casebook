@@ -9,12 +9,12 @@ export function RemoveEvidenceButton({
   evidenceId,
   findingId,
   programId,
-  patientId,
+  caseId,
 }: {
   evidenceId: string;
   findingId: string;
   programId: string;
-  patientId: string;
+  caseId: string;
 }) {
   const [, formAction, pending] = useActionState<{ error?: string }, FormData>(removeEvidenceAction, {});
   return (
@@ -27,7 +27,7 @@ export function RemoveEvidenceButton({
       <input type="hidden" name="evidenceId" value={evidenceId} />
       <input type="hidden" name="findingId" value={findingId} />
       <input type="hidden" name="programId" value={programId} />
-      <input type="hidden" name="patientId" value={patientId} />
+      <input type="hidden" name="caseId" value={caseId} />
       <Button
         type="submit"
         variant="ghost"

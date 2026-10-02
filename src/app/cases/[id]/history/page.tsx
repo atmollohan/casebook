@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { listHistory, findPatientById } from "@/lib/db/repo";
+import { listHistory, findCaseById } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export default async function HistoryTabPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
   const events = listHistory(db, found.program.id, user.id) ?? [];
 

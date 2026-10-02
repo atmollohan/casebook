@@ -14,10 +14,11 @@ import {
   FINDING_CATEGORY_LABELS,
   SIGNIFICANCE_LABELS,
   EVIDENCE_SOURCE_LABELS,
-  CONSENT_STATUS_LABELS,
-  SEX_LABELS,
+  CASE_KIND_LABELS,
   DEMO_BADGE,
+  type CaseKind,
 } from "@/lib/constants";
+import { parseAttributes } from "@/lib/attributes";
 import { formatDate, formatBytes } from "@/lib/utils/format";
 
 export interface ReportKv {
@@ -41,16 +42,34 @@ export interface ReportSection {
 
 export type ReportContent = ReportSection[];
 
-export function emptyReportContent(): ReportContent {
-  return [];
+export interface GeneratedReport {
+  title: string;
+  summary: string;
+  content: ReportContent;
 }
 
-export function generateReportContent(db: Db, programId: string, userId: string): ReportContent {
+function caseKindLabel(kind: string): string {
+  return CASE_KIND_LABELS[kind as CaseKind] ?? kind;
+}
+
+function caseDisplayName(row: { title: string; subtitle: string | null }): string {
+  return row.subtitle ? `${row.title} — ${row.subtitle}` : row.title;
+}
+
+/**
+ * Assemble the report and the facts that describe it in one pass.
+ *
+ * The summary is computed here, from the same values the sections are built from, rather than
+ * scraped back out of the rendered content. The previous implementation searched the finished
+ * sections for the titles "Research program" and "Research data" and the label "Program", so
+ * renaming a section silently produced an empty summary instead of a failing one.
+ */
+export function generateReport(db: Db, programId: string, userId: string): GeneratedReport {
   const summary = getProgramForResearcher(db, programId, userId);
   if (!summary) {
     throw new Error("Program not found or not accessible");
   }
-  const { patient, program } = summary;
+  const { case: record, program } = summary;
   const data = listDataRecords(db, programId, userId) ?? [];
   const activities = listActivities(db, programId, userId) ?? [];
   const findings = listFindings(db, programId, userId) ?? [];
@@ -58,35 +77,22 @@ export function generateReportContent(db: Db, programId: string, userId: string)
 
   const sections: ReportSection[] = [];
 
-  // 1. Patient overview
+  // 1. Case overview. The case is whatever the investigator is studying, so the overview reports
+  // what is on the record and says "Not recorded" for nothing — it never asserts a fact the
+  // owner did not supply.
+  const attributes = parseAttributes(record.attributes);
   sections.push({
-    title: "Patient overview",
+    title: "Case overview",
     blocks: [
       {
         type: "kv",
         kv: [
-          { label: "Patient ID", value: patient.pid },
-          { label: "Name", value: `${patient.lastName}, ${patient.firstName}` },
-          {
-            label: "Birth year / age",
-            value: patient.birthYear ? String(patient.birthYear) : "Not recorded",
-          },
-          {
-            label: "Sex",
-            value: patient.sex
-              ? (SEX_LABELS[patient.sex as keyof typeof SEX_LABELS] ?? patient.sex)
-              : "Not recorded",
-          },
-          {
-            label: "Reason for research engagement",
-            value: patient.conditionSummary ?? "Not recorded",
-          },
-          {
-            label: "Data status",
-            value:
-              CONSENT_STATUS_LABELS[patient.consentStatus as keyof typeof CONSENT_STATUS_LABELS] ??
-              patient.consentStatus,
-          },
+          { label: "Case ID", value: record.code },
+          { label: "Case", value: record.title },
+          ...(record.subtitle ? [{ label: "Qualifier", value: record.subtitle }] : []),
+          { label: "Kind", value: caseKindLabel(record.kind) },
+          { label: "Reason for investigation", value: record.summary ?? "Not recorded" },
+          ...Object.entries(attributes).map(([label, value]) => ({ label, value })),
         ],
       },
     ],
@@ -255,7 +261,7 @@ export function generateReportContent(db: Db, programId: string, userId: string)
     blocks: [
       {
         type: "quote",
-        text: "This report was assembled automatically from the research program workspace. It is a record of research work, not a validated clinical or laboratory report, and it is not suitable for clinical decision-making. Content taken from the bundled demo seed is synthetic and deidentified.",
+        text: "This report was assembled automatically from the research program workspace. It is a record of research work, not a validated report, and it is not suitable for decision-making of any kind. Content taken from the bundled demo seed is synthetic and deidentified; anything else was supplied by the account holder.",
       },
       {
         type: "note",
@@ -264,19 +270,15 @@ export function generateReportContent(db: Db, programId: string, userId: string)
     ],
   });
 
-  return sections;
+  return {
+    title: programReportTitle(caseDisplayName(record)),
+    summary: `${program.title} · ${data.length} data asset${data.length === 1 ? "" : "s"} catalogued.`,
+    content: sections,
+  };
 }
 
-export function programReportTitle(patientName: string): string {
-  return `Research report · ${patientName}`;
+export function programReportTitle(caseName: string): string {
+  return `Research report · ${caseName}`;
 }
 
 export { DEMO_BADGE };
-export function reportSummary(sections: ReportContent): string {
-  const first = sections.find((s) => s.title === "Research program");
-  const dataSection = sections.find((s) => s.title === "Research data");
-  const dataCount = dataSection ? (dataSection.blocks.find((b) => b.type === "table")?.rows?.length ?? 0) : 0;
-  const programBlock = first?.blocks.find((b) => b.type === "kv");
-  const titleValue = programBlock?.kv?.find((kv) => kv.label === "Program")?.value ?? "";
-  return `${titleValue} · ${dataCount} data asset${dataCount === 1 ? "" : "s"} catalogued.`;
-}

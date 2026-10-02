@@ -29,13 +29,13 @@ import { SIGNIFICANCE_LABELS, type SignificanceLevel, type ProgramStatus } from 
 import { timeAgo, formatDate } from "@/lib/utils/format";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { findPatientById } from "@/lib/db/repo";
+import { findCaseById } from "@/lib/db/repo";
 
-export default async function PatientOverviewPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CaseOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
 
   const data = listDataRecords(db, found.program.id, user.id) ?? [];
@@ -54,14 +54,14 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
         <h2 className="text-lg font-semibold tracking-tight text-ink-900">Program overview</h2>
         <div className="flex flex-wrap gap-2">
           <ButtonLink
-            href={`/patients/${id}/data?upload=1`}
+            href={`/cases/${id}/data?upload=1`}
             variant="secondary"
             size="sm"
             icon={<Upload className="size-4" />}
           >
             Upload data
           </ButtonLink>
-          <ButtonLink href={`/patients/${id}/activities/new`} size="sm" icon={<Plus className="size-4" />}>
+          <ButtonLink href={`/cases/${id}/activities/new`} size="sm" icon={<Plus className="size-4" />}>
             New analysis
           </ButtonLink>
         </div>
@@ -83,7 +83,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
               aside={
                 <ProgramStatusControl
                   programId={found.program.id}
-                  patientId={found.patient.id}
+                  caseId={found.case.id}
                   current={found.program.status as ProgramStatus}
                 />
               }
@@ -109,7 +109,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
                     <span className="font-medium">{openActivities.length} active analysis</span>
                     {openActivities.length === 1 ? " in progress" : "s in progress"} ·{" "}
                     <Link
-                      href={`/patients/${id}/activities`}
+                      href={`/cases/${id}/activities`}
                       className="font-medium underline underline-offset-2"
                     >
                       review
@@ -124,7 +124,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
             <CardHeader
               title="Recent findings"
               aside={
-                <ButtonLink href={`/patients/${id}/findings`} variant="ghost" size="sm">
+                <ButtonLink href={`/cases/${id}/findings`} variant="ghost" size="sm">
                   View all <ArrowRight className="size-3.5" />
                 </ButtonLink>
               }
@@ -135,7 +135,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
                   icon={<Lightbulb className="size-6" />}
                   title="No findings recorded"
                   action={
-                    <ButtonLink href={`/patients/${id}/findings?new=1`} size="sm">
+                    <ButtonLink href={`/cases/${id}/findings?new=1`} size="sm">
                       Record a finding
                     </ButtonLink>
                   }
@@ -159,7 +159,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
                         </Badge>
                         {f.activity && (
                           <Link
-                            href={`/patients/${id}/activities/${f.activity.id}`}
+                            href={`/cases/${id}/activities/${f.activity.id}`}
                             className="text-[13px] text-brand-700 hover:underline"
                           >
                             {f.activity.title}
@@ -199,7 +199,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
             </CardBody>
             {history.length > 6 && (
               <Link
-                href={`/patients/${id}/history`}
+                href={`/cases/${id}/history`}
                 className="block border-t border-ink-100 px-5 py-2.5 text-center text-[13px] font-medium text-brand-700 hover:bg-brand-50/50"
               >
                 View full history
@@ -215,7 +215,7 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
               </div>
               <p className="mt-1.5 text-[13px] leading-relaxed text-ink-700/80">
                 {data.length === 0
-                  ? "Upload the first research data asset for this patient."
+                  ? "Upload the first research data asset for this case."
                   : findings.length === 0
                     ? "Run a research activity and record findings from it."
                     : reports.length === 0
@@ -224,15 +224,15 @@ export default async function PatientOverviewPage({ params }: { params: Promise<
               </p>
               <div className="mt-3">
                 {data.length === 0 ? (
-                  <ButtonLink href={`/patients/${id}/data?upload=1`} size="sm">
+                  <ButtonLink href={`/cases/${id}/data?upload=1`} size="sm">
                     Upload data
                   </ButtonLink>
                 ) : findings.length === 0 ? (
-                  <ButtonLink href={`/patients/${id}/activities/new`} size="sm">
+                  <ButtonLink href={`/cases/${id}/activities/new`} size="sm">
                     Start an analysis
                   </ButtonLink>
                 ) : reports.length === 0 ? (
-                  <ButtonLink href={`/patients/${id}/reports`} size="sm">
+                  <ButtonLink href={`/cases/${id}/reports`} size="sm">
                     Generate report
                   </ButtonLink>
                 ) : (

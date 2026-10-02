@@ -32,26 +32,36 @@ export const sessions = sqliteTable(
   }),
 );
 
-export const patients = sqliteTable(
-  "patients",
+/**
+ * A case is the thing an investigation is about. It is a subject of study rather than a person: a
+ * human subject, a material, a sample, a dataset, a cohort, a device, or a process. `kind` is a
+ * label for the reader, not a switch the app branches on — a patient case is simply a case whose
+ * kind is `subject`.
+ *
+ * The app does not know which fields an investigation needs, so it does not prescribe any.
+ * `attributes` holds the owner's own key/value pairs, flat and string-valued: renderable in a
+ * report, and impossible to accidentally join against. Nothing here is ever asserted on the
+ * owner's behalf; every attribute is a fact they typed.
+ */
+export const cases = sqliteTable(
+  "cases",
   {
     id: text("id").primaryKey(),
-    pid: text("pid").notNull(),
+    code: text("code").notNull(),
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id),
-    firstName: text("first_name").notNull(),
-    lastName: text("last_name").notNull(),
-    birthYear: integer("birth_year"),
-    sex: text("sex"),
-    conditionSummary: text("condition_summary"),
-    consentStatus: text("consent_status").notNull().default("consented"),
+    title: text("title").notNull(),
+    subtitle: text("subtitle"),
+    kind: text("kind").notNull().default("subject"),
+    summary: text("summary"),
+    attributes: text("attributes_json"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
   (t) => ({
-    pidIdx: uniqueIndex("patients_pid_idx").on(t.pid),
-    ownerIdx: index("patients_owner_idx").on(t.ownerId),
+    codeIdx: uniqueIndex("cases_code_idx").on(t.code),
+    ownerIdx: index("cases_owner_idx").on(t.ownerId),
   }),
 );
 
@@ -59,9 +69,9 @@ export const researchPrograms = sqliteTable(
   "research_programs",
   {
     id: text("id").primaryKey(),
-    patientId: text("patient_id")
+    caseId: text("case_id")
       .notNull()
-      .references(() => patients.id, { onDelete: "cascade" }),
+      .references(() => cases.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     description: text("description"),
     hypothesis: text("hypothesis"),
@@ -71,7 +81,7 @@ export const researchPrograms = sqliteTable(
     updatedAt: integer("updated_at").notNull(),
   },
   (t) => ({
-    patientIdx: index("research_programs_patient_idx").on(t.patientId),
+    caseIdx: index("research_programs_case_idx").on(t.caseId),
   }),
 );
 
@@ -221,7 +231,8 @@ export const historyEvents = sqliteTable(
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
-export type Patient = typeof patients.$inferSelect;
+export type Case = typeof cases.$inferSelect;
+export type NewCase = typeof cases.$inferInsert;
 export type ResearchProgram = typeof researchPrograms.$inferSelect;
 export type DataRecord = typeof dataRecords.$inferSelect;
 export type ResearchActivity = typeof researchActivities.$inferSelect;

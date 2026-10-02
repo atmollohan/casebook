@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { findPatientById, getActivity, listFindings } from "@/lib/db/repo";
+import { findCaseById, getActivity, listFindings } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ export default async function ActivityDetailPage({
   const { created, finding: justRecorded } = await searchParams;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
   const activity = getActivity(db, activityId, found.program.id, user.id);
   if (!activity) notFound();
@@ -46,7 +46,7 @@ export default async function ActivityDetailPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Link
-            href={`/patients/${id}/activities`}
+            href={`/cases/${id}/activities`}
             className="focus-ring inline-flex items-center gap-1 rounded-lg text-sm font-medium text-ink-700/70 hover:text-brand-700"
           >
             <ChevronLeft className="size-4" /> Activities
@@ -119,7 +119,7 @@ export default async function ActivityDetailPage({
             aside={<Lightbulb className="size-5 text-amber-500" />}
           />
           <CardBody>
-            <RecordFindingForm programId={found.program.id} patientId={id} activityId={activity.id} />
+            <RecordFindingForm programId={found.program.id} caseId={id} activityId={activity.id} />
           </CardBody>
         </Card>
       </div>
@@ -128,7 +128,7 @@ export default async function ActivityDetailPage({
         <CardHeader
           title={`Findings from this analysis (${findings.length})`}
           aside={
-            <ButtonLink href={`/patients/${id}/findings`} variant="ghost" size="sm">
+            <ButtonLink href={`/cases/${id}/findings`} variant="ghost" size="sm">
               All findings
             </ButtonLink>
           }
@@ -141,7 +141,7 @@ export default async function ActivityDetailPage({
               {findings.map((f) => (
                 <li key={f.id}>
                   <Link
-                    href={`/patients/${id}/findings#finding-${f.id}`}
+                    href={`/cases/${id}/findings#finding-${f.id}`}
                     className="block px-5 py-3.5 hover:bg-ink-50/50"
                   >
                     <div className="flex flex-wrap items-center gap-2">

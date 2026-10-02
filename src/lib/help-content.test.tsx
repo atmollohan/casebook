@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HELP_GLOSSARY, HELP_INTRO, HELP_SECTIONS, HELP_TOUR_HREF, type HelpBlock } from "@/lib/help-content";
+import {
+  HELP_ALL_TERMS,
+  HELP_GLOSSARY,
+  HELP_INTRO,
+  HELP_SECTIONS,
+  HELP_TERM_GROUPS,
+  HELP_TOUR_HREF,
+  type HelpBlock,
+} from "@/lib/help-content";
 
 const TOC_IDS = [...HELP_SECTIONS.map((s) => s.id), "glossary"];
 
@@ -23,7 +31,7 @@ function allText(blocks: HelpBlock[]): string {
     .join("\n");
 }
 
-const HELP_COPY = `${HELP_INTRO}\n${HELP_SECTIONS.map((s) => `${s.title}\n${allText(s.blocks)}`).join("\n")}\n${HELP_GLOSSARY.map((g) => `${g.term} ${g.definition}`).join("\n")}`;
+const HELP_COPY = `${HELP_INTRO}\n${HELP_SECTIONS.map((s) => `${s.title}\n${allText(s.blocks)}`).join("\n")}\n${HELP_ALL_TERMS.map((g) => `${g.term} ${g.definition}`).join("\n")}`;
 
 describe("in-app help content", () => {
   it("has sections with titles and real content", () => {
@@ -87,11 +95,24 @@ describe("in-app help content", () => {
 
   it("keeps glossary terms unique and defined", () => {
     expect(HELP_GLOSSARY.length).toBeGreaterThanOrEqual(12);
-    const terms = HELP_GLOSSARY.map((g) => g.term);
-    expect(new Set(terms).size).toBe(terms.length);
-    for (const { term, definition } of HELP_GLOSSARY) {
+    const terms = HELP_ALL_TERMS.map((g) => g.term);
+    // Duplicates across the core glossary and the domain groups would render as two entries
+    // with the same name, and the filter would report a count that does not match the page.
+    expect(new Set(terms).size, "duplicate term across glossary groups").toBe(terms.length);
+    for (const { term, definition } of HELP_ALL_TERMS) {
       expect(term.trim().length, term).toBeGreaterThan(1);
       expect(definition.trim().length, term).toBeGreaterThan(20);
+    }
+  });
+
+  it("says the app's own vocabulary first, and marks domain terms as a domain's", () => {
+    // The whole point of the generalization is that the app's vocabulary does not depend on a
+    // field. If the field terms came first, the page would read as a genomics tool.
+    expect(HELP_TERM_GROUPS[0].title).toBe("Casebook");
+    expect(HELP_TERM_GROUPS[0].terms.map((t) => t.term)).toContain("Case");
+    for (const group of HELP_TERM_GROUPS.slice(1)) {
+      expect(group.blurb, group.title).toBeTruthy();
+      expect(group.blurb!.toLowerCase(), group.title).toContain("not to casebook");
     }
   });
 
@@ -102,25 +123,31 @@ describe("in-app help content", () => {
 
 describe("glossary filter", () => {
   // Pure filter logic, exercised without a DOM: what a researcher typing a term sees.
+  // It searches every group, because a reader who types "VCF" should not have to know that
+  // the term belongs to the domain group rather than the core glossary.
   function filter(q: string) {
     const needle = q.trim().toLowerCase();
-    if (!needle) return HELP_GLOSSARY;
-    return HELP_GLOSSARY.filter(
+    if (!needle) return HELP_ALL_TERMS;
+    return HELP_ALL_TERMS.filter(
       (t) => t.term.toLowerCase().includes(needle) || t.definition.toLowerCase().includes(needle),
     );
   }
 
   it("returns everything for an empty query", () => {
-    expect(filter("")).toHaveLength(HELP_GLOSSARY.length);
+    expect(filter("")).toHaveLength(HELP_ALL_TERMS.length);
   });
 
-  it("matches a term by name", () => {
+  it("matches a domain term by name", () => {
     const found = filter("vcf");
     expect(found.map((t) => t.term)).toContain("VCF");
   });
 
   it("matches a term by definition", () => {
     expect(filter("chromosome").map((t) => t.term)).toContain("Karyotype");
+  });
+
+  it("matches the app's own vocabulary too", () => {
+    expect(filter("case kind").map((t) => t.term)).toContain("Case kind");
   });
 
   it("is case insensitive and ignores surrounding space", () => {

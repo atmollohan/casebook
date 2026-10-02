@@ -14,12 +14,12 @@ import { Lightbulb } from "lucide-react";
 
 export function RecordFindingForm({
   programId,
-  patientId,
+  caseId,
   activityId,
   defaultCategory,
 }: {
   programId: string;
-  patientId: string;
+  caseId: string;
   activityId?: string | null;
   defaultCategory?: string;
 }) {
@@ -29,7 +29,7 @@ export function RecordFindingForm({
     <form action={formAction} className="space-y-4">
       {activityId ? <input type="hidden" name="activityId" value={activityId} /> : null}
       <input type="hidden" name="programId" value={programId} />
-      <input type="hidden" name="patientId" value={patientId} />
+      <input type="hidden" name="caseId" value={caseId} />
       <input type="hidden" name="fromActivity" value={activityId ?? ""} />
       <Field
         label="Finding title"
@@ -80,7 +80,7 @@ export function RecordFindingForm({
         </Button>
         {activityId && (
           <a
-            href={`/patients/${patientId}/activities/${activityId}`}
+            href={`/cases/${caseId}/activities/${activityId}`}
             className="rounded-lg px-3 py-2 text-sm font-medium text-ink-700/70 hover:bg-ink-100 hover:text-ink-900"
           >
             Cancel

@@ -1,9 +1,13 @@
 # Casebook
 
-A self-hosted web app for working through a genomic case. You upload data files, record the analyses you
-run, write down what you concluded, cite the evidence behind it, and generate a report at the end. The
-focus is DNA and oncology, but the workflow — upload → analyze → conclude → cite → report — suits any
-kind of data investigation.
+A self-hosted web app for working through a case. You upload data files, record the analyses you run, write
+down what you concluded, cite the evidence behind it, and generate a report at the end. The workflow —
+upload → analyze → conclude → cite → report — suits any kind of data investigation.
+
+A **case** is the thing being investigated. It is often a person, and the bundled demo data leans on DNA
+and oncology because that is the richest worked example, but a case can equally be a sample, a material, a
+dataset, a device, or a cohort. Nothing in the data model or the workflow is specific to people or to
+genomics; the app does not treat one kind of case differently from another.
 
 > **Not a clinical tool.** Casebook is a research notebook, not a medical record and not a diagnostic or
 > decision-support system. The demo data that ships with it is synthetic and deidentified, for trying the
@@ -39,23 +43,26 @@ Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle
    in the header replays it anytime.
 1. **Sign in** — email/password (bcrypt-hashed), server-action based, httpOnly session cookie, middleware
    redirect.
-2. **Cases** — dashboard listing every patient and their research program (status, hypothesis, asset
+2. **Cases** — dashboard listing every case and its research program (code, kind, status, hypothesis, asset
    counts).
-3. **Workspace per patient** (7 tabs):
+3. **Workspace per case** (7 tabs):
    - **Overview** — program summary, stats, latest findings, activity timeline, and a suggested next step.
    - **Research data** — upload CSV/TSV/VCF/JSON/TXT/FASTA/BED/GFF/PDF/PNG/JPG/XLSX/MD (≤25 MB), inline
      previews (table/JSON-syntax-highlighted text/image), download via an authenticated API route, delete.
-   - **Activities** — log analyses (variant review, literature review, statistical analysis, …) with a
-     hypothesis; walk them `planned → in_progress → completed`; record findings inline.
+   - **Activities** — log analyses (data review, statistical analysis, literature review, experiment, …) with
+     a hypothesis; walk them `planned → in_progress → completed`; record findings inline.
    - **Findings** — conclusions you recorded, with category and significance, optionally linked to an
      activity.
-   - **Evidence & sources** — publications/databases/clinical records/datasets attached to findings
+   - **Evidence & sources** — publications, datasets, measurements, and notes attached to findings
      (URL/DOI/note).
-   - **Reports** — auto-assembled structured reports (patient overview, program, data index, activities,
+   - **Reports** — auto-assembled structured reports (case overview, program, data index, activities,
      findings + evidence, history, methodology note); draft → mark final; print/save-as-PDF layout with
      print CSS.
    - **History** — immutable event trail of everything that happened in the program.
-4. **New patient program** — create patient + program in one form; the workspace opens ready.
+4. **New case** — create a case and its program in one form; the workspace opens ready. Alongside the name,
+   kind, and summary you can add free-form attributes: name-and-value pairs you define yourself, such as a
+   collection date or an instrument serial. Casebook does not prescribe which fields your investigation
+   needs and never interprets the ones you record.
 
 ### Interface principles
 
@@ -73,15 +80,21 @@ The UI is deliberately quiet. Documentation is available on demand and never blo
 
 ## Domain model
 
-10 tables (Drizzle, SQLite): `users`, `sessions`, `patients`, `research_programs`, `data_records`,
+10 tables (Drizzle, SQLite): `users`, `sessions`, `cases`, `research_programs`, `data_records`,
 `research_activities`, `findings`, `evidence`, `reports`, `history_events`.
+
+A `cases` row carries an `id`, a human-readable `code`, an `owner_id`, a `title`, an optional `subtitle`, a
+`kind` (subject, material, sample, dataset, cohort, device, process, other), an optional `summary`, and an
+optional `attributes_json` — a flat map of string pairs the investigator defines. Attributes are flat and
+string-valued on purpose: a pair is renderable in a report and in the case header, and it is impossible to
+accidentally join or aggregate against. Anything that needs querying across cases belongs in a real column.
 
 Key invariants:
 
 - One researcher per instance; **proof of ownership enforced in the data layer** — every query/action checks
-  `programAllowed()` (patient owner / program), so a patient's records can't leak across users.
+  `programAllowed()` (case owner / program), so a case's records can't leak across users.
 - Every mutation writes a `history_events` row (timeline + report "Activity history" section).
-- Patient IDs are `CB-P-0001…`; long IDs are `prefix_<uuid-ish>`.
+- Case codes are `CB-C-0001…`, derived from the highest code in use; long IDs are `prefix_<uuid-ish>`.
 - `data_records.is_synthetic` records provenance, not permission: the bundled seed sets it, the upload path
   clears it. A report only calls content synthetic when the flag says so.
 
@@ -91,8 +104,10 @@ Key invariants:
   interactive forms.
 - **Tailwind CSS v3** design system: `ui/{button,badge,card,form,empty-state,avatar}`, brand teal palette,
   print CSS.
-- **Drizzle ORM + better-sqlite3** — `src/lib/db/{index,schema,repo}.ts`. Migrations in `drizzle/`.
-- **Server Actions** — one module per domain (`src/actions/{auth,patient,data,activities,findings,reports}.ts`),
+- **Drizzle ORM + better-sqlite3** — `src/lib/db/{index,schema,repo}.ts`. Migrations in `drizzle/`, which is
+  tracked in git: the SQL and the generated snapshot are the only record of how an instance's data moves
+  between schema versions, and a clean clone needs them to migrate at all.
+- **Server Actions** — one module per domain (`src/actions/{auth,case,data,activities,findings,reports}.ts`),
   zod-validated, always guarded by `requireUser()`.
 - **File handling** — `src/lib/files/{storage,mime,parse}.ts` with size/extension allowlists; previews parse
   CSV/TSV/VCF/JSON/text/markdown/images.
@@ -160,7 +175,9 @@ and a real production compile.
 ## Help is inside the app
 
 The **Help** control in the header opens `/help` — a written guide to the workflow, uploads, the reasoning
-chain, report lifecycle, troubleshooting, and a filterable glossary of genomics and research terms. It is
+chain, report lifecycle, troubleshooting, and a filterable glossary. The glossary is split so the app's own
+vocabulary reads first and any one field's terms are labelled as that field's, rather than presented as
+something the app requires. It is
 there so nobody has to leave the app or read a repository to find out what a tab is for. The content lives
 in `src/lib/help-content.ts` as data, which lets `src/lib/help-content.test.tsx` assert the anchors, the
 topic coverage, and that the page never promises a capability the app has not shipped.
@@ -176,12 +193,20 @@ a sample is rejected by the allowlist, grows too large, or stops being obviously
 
 ## Seeded demo walkthrough
 
-- **CB-P-0001 · Patricia Okafor** — the flagship: 6 data assets (WES variant calls, SV VCF, karyotype,
-  treatment history, serial CBC, consult note), 3 activities, 4 findings with evidence, and a draft report.
-  Try **Generate report → open → Mark as final → Print / save PDF**.
-- **CB-P-0002 · Marcus Whitfield** — mid-maturity TNBC/HRD program (partial pipeline).
-- **CB-P-0003 · Elena Kovalski** — fresh enrollment, exercises every empty state.
-- **CB-P-0004 · Raymond Silva** — paused chordoma program (data + a planned activity).
+The set deliberately spans more than one domain, so the shape of the workflow is visibly not tied to people
+or to genomics. Four cases are subjects, one is a material sample, and one is a device.
+
+- **CB-C-0001 · Patricia Okafor** (`subject`) — the flagship: 6 data assets (WES variant calls, SV VCF,
+  karyotype, treatment history, serial CBC, consult note), 3 activities, 4 findings with evidence, and a
+  draft report. Try **Generate report → open → Mark as final → Print / save PDF**.
+- **CB-C-0002 · Marcus Whitfield** (`subject`) — mid-maturity TNBC/HRD program (partial pipeline).
+- **CB-C-0003 · Elena Kovalski** (`subject`) — fresh enrollment, exercises every empty state.
+- **CB-C-0004 · Raymond Silva** (`subject`) — paused chordoma program (data + a planned activity).
+- **CB-C-0005 · Sediment core 14-B** (`material`) — porewater and organic-carbon depth profiles across a
+  catchment. Attributes are a sample type, a depth range, a collection date, a storage temperature, and a
+  chain-of-custody reference: none of them is a field about a person, and nothing in the workflow changes.
+- **CB-C-0006 · Thermal imaging rig 3** (`device`) — a calibration sweep across three surface finishes, with a
+  finding that the instrument needs a per-surface correction.
 
 ## Tests
 
@@ -192,7 +217,7 @@ a sample is rejected by the allowlist, grows too large, or stops being obviously
   generate and finalize a report, delete a file. Asserts the finished report contains the actual work, a
   researcher who does not own the program is refused at every read and write, and every step left a
   history entry attributed to the researcher who did it.
-- `src/lib/data-layer.test.ts` — patient/program creation, pid sequencing, ownership isolation, data record
+- `src/lib/data-layer.test.ts` — case/program creation, code sequencing, ownership isolation, data record
   create/list/delete with history, the activity status lifecycle, findings-with-evidence, and the full
   report flow.
 - `src/app/route-boundaries.test.tsx` — the loading, error, global-error, and not-found boundaries.
@@ -200,6 +225,13 @@ a sample is rejected by the allowlist, grows too large, or stops being obviously
   workflow, no claims about undelivered features, and the glossary filter.
 - `src/lib/files/samples.test.ts` — the demo sample files are all accepted by the allowlist and all small
   enough to upload instantly.
+- `src/lib/db/migration.test.ts` — the `patients` → `cases` migration, against a real SQLite file. Builds the
+  previous schema, inserts rows, applies the migration, and asserts the rows, the child rows, the recorded
+  facts, the codes, and the ownership boundary all survive. Also asserts the file contains no `DROP TABLE`,
+  which is the failure mode the hand-written migration exists to avoid.
+- `src/actions/case.test.ts` — creating and editing a case through the real server action, including that a
+  case need not be a person, that a title of whitespace is refused, and that attributes past their bounds are
+  rejected rather than silently truncated.
 
 New behavior needs a test, and every new read or write path needs a negative test for a user without access.
 
@@ -222,7 +254,7 @@ Keep these current as the app changes — a stale doc is a defect:
 
 See `.planning/ROADMAP.md` for the current plan. Near-term work is making single-user self-hosting solid —
 PostgreSQL and object storage as alternatives to the local file, larger uploads, and real analysis jobs
-behind a documented seam. Multi-user and anything patient-facing are deliberately not planned.
+behind a documented seam. Multi-user and anything regulated-workflow-facing are deliberately not planned.
 
 ## License
 

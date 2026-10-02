@@ -10,11 +10,11 @@ import { BookOpenText } from "lucide-react";
 export function AddEvidenceForm({
   findingId,
   programId,
-  patientId,
+  caseId,
 }: {
   findingId: string;
   programId: string;
-  patientId: string;
+  caseId: string;
 }) {
   const [state, formAction, pending] = useActionState<FindingFormState, FormData>(addEvidenceAction, {});
 
@@ -22,7 +22,7 @@ export function AddEvidenceForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="findingId" value={findingId} />
       <input type="hidden" name="programId" value={programId} />
-      <input type="hidden" name="patientId" value={patientId} />
+      <input type="hidden" name="caseId" value={caseId} />
       <Field label="Source type" htmlFor="sourceType" required>
         <select
           id="sourceType"

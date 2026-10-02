@@ -2,7 +2,7 @@
   "name": "casebook",
   "version": "0.1.0",
   "private": true,
-  "description": "Casebook \u2014 self-hosted case workspace for genomic data. Synthetic-data demo.",
+  "description": "Casebook — self-hosted case workspace for research data. Synthetic-data demo.",
   "scripts": {
     "dev": "NEXT_DIST_DIR=.next-dev next dev",
     "build": "next build",

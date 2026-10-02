@@ -1,35 +1,32 @@
 "use client";
 
 import { useActionState } from "react";
-import { createPatientAction, type FormState } from "@/actions/patient";
+import { createCaseAction, type FormState } from "@/actions/case";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { AttributeFields } from "@/components/workspace/attribute-fields";
 import {
-  CONSENT_STATUSES,
-  CONSENT_STATUS_LABELS,
-  SEX_VALUES,
-  SEX_LABELS,
   PROGRAM_INITIAL_STATUSES,
   PROGRAM_STATUS_LABELS,
   PROGRAM_DEFAULT_STATUS,
-  type ConsentStatus,
-  type SexValue,
+  CASE_KINDS,
+  CASE_KIND_LABELS,
 } from "@/lib/constants";
-import { UserPlus } from "lucide-react";
+import { FolderPlus } from "lucide-react";
 import Link from "next/link";
 
-export default function NewPatientPage() {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(createPatientAction, {});
+export default function NewCasePage() {
+  const [state, formAction, pending] = useActionState<FormState, FormData>(createCaseAction, {});
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-ink-900">New patient program</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-ink-900">New case</h2>
           <p className="mt-0.5 text-sm text-ink-700/70">
-            Register a patient and their research program in one step. The workspace opens with overview,
-            data, activities, findings, evidence, reports, and history ready.
+            A case is whatever the investigation is about — a person, a material, a sample, a dataset, a
+            device. Register it and its research program in one step.
           </p>
         </div>
         <Link
@@ -41,66 +38,61 @@ export default function NewPatientPage() {
       </div>
 
       <Card>
-        <CardHeader
-          title="Patient & program details"
-          aside={<UserPlus className="size-5 text-brand-600" />}
-        />
+        <CardHeader title="Case & program details" aside={<FolderPlus className="size-5 text-brand-600" />} />
         <CardBody>
           <form action={formAction} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Name" htmlFor="title" required error={state.fieldErrors?.title?.[0]}>
+                <Input
+                  id="title"
+                  name="title"
+                  required
+                  placeholder="e.g. Soil core 14-B, or a person's name"
+                />
+              </Field>
               <Field
-                label="First name"
-                htmlFor="firstName"
-                required
-                error={state.fieldErrors?.firstName?.[0]}
+                label="Qualifier"
+                htmlFor="subtitle"
+                error={state.fieldErrors?.subtitle?.[0]}
+                hint="optional: the detail that distinguishes it"
               >
-                <Input id="firstName" name="firstName" autoComplete="given-name" />
-              </Field>
-              <Field label="Last name" htmlFor="lastName" required error={state.fieldErrors?.lastName?.[0]}>
-                <Input id="lastName" name="lastName" autoComplete="family-name" />
-              </Field>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Birth year" htmlFor="birthYear" error={state.fieldErrors?.birthYear?.[0]}>
-                <Input id="birthYear" name="birthYear" type="number" inputMode="numeric" placeholder="1985" />
-              </Field>
-              <Field label="Sex" htmlFor="sex">
-                <Select id="sex" name="sex" defaultValue="unknown">
-                  {SEX_VALUES.map((s: SexValue) => (
-                    <option key={s} value={s}>
-                      {SEX_LABELS[s]}
-                    </option>
-                  ))}
-                </Select>
+                <Input id="subtitle" name="subtitle" placeholder="e.g. treatment-refractory CLL" />
               </Field>
             </div>
             <Field
-              label="Reason for research engagement"
-              htmlFor="conditionSummary"
-              error={state.fieldErrors?.conditionSummary?.[0]}
-              hint="diagnosis, clinical question, or research interest"
+              label="Kind"
+              htmlFor="kind"
+              hint="how the case should be described; it does not change what the app does"
             >
-              <Textarea
-                id="conditionSummary"
-                name="conditionSummary"
-                rows={2}
-                placeholder="e.g. Treatment-refractory CLL; TP53 disruption research focus…"
-              />
-            </Field>
-            <Field label="Consent status" htmlFor="consentStatus" required>
-              <Select id="consentStatus" name="consentStatus" defaultValue="consented">
-                {CONSENT_STATUSES.map((c: ConsentStatus) => (
-                  <option key={c} value={c}>
-                    {CONSENT_STATUS_LABELS[c]}
+              <Select id="kind" name="kind" defaultValue="subject">
+                {CASE_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {CASE_KIND_LABELS[k]}
                   </option>
                 ))}
               </Select>
             </Field>
+            <Field
+              label="Reason for the investigation"
+              htmlFor="summary"
+              error={state.fieldErrors?.summary?.[0]}
+            >
+              <Textarea
+                id="summary"
+                name="summary"
+                rows={2}
+                placeholder="e.g. Which question this case exists to answer…"
+              />
+            </Field>
+
+            <div className="border-t border-ink-100 pt-5">
+              <AttributeFields error={state.error} />
+            </div>
 
             <div className="border-t border-ink-100 pt-5">
               <div className="text-[15px] font-semibold text-ink-900">Research program</div>
               <div className="mt-0.5 text-sm text-ink-700/70">
-                Each patient program requires a title; the rest can be filled in later.
+                Each case needs a program title; the rest can be filled in later.
               </div>
             </div>
             <Field
@@ -126,11 +118,11 @@ export default function NewPatientPage() {
               <Input
                 id="programTitle"
                 name="programTitle"
-                placeholder="e.g. TP53 disruption in treatment-refractory CLL"
+                placeholder="e.g. Copy-number instability in treatment-refractory CLL"
               />
             </Field>
             <Field label="Focus area" htmlFor="focusArea" error={state.fieldErrors?.focusArea?.[0]}>
-              <Input id="focusArea" name="focusArea" placeholder="e.g. Genomics, somatic variants" />
+              <Input id="focusArea" name="focusArea" placeholder="e.g. Structural variation" />
             </Field>
             <Field
               label="Hypothesis"
@@ -157,10 +149,9 @@ export default function NewPatientPage() {
               />
             </Field>
 
-            {state.error && <div className="field-error">{state.error}</div>}
             <div className="flex items-center gap-2 pt-1">
-              <Button type="submit" disabled={pending} icon={<UserPlus className="size-4" />}>
-                {pending ? "Creating…" : "Create patient program"}
+              <Button type="submit" disabled={pending} icon={<FolderPlus className="size-4" />}>
+                {pending ? "Creating…" : "Create case"}
               </Button>
               <Link
                 href="/"

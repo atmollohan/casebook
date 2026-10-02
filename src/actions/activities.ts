@@ -23,9 +23,9 @@ export async function createActivityAction(
 ): Promise<ActivityFormState> {
   const user = await requireUser();
   const programId = formData.get("programId");
-  const patientId = formData.get("patientId");
+  const caseId = formData.get("caseId");
   if (typeof programId !== "string") return { error: "Missing program id." };
-  if (typeof patientId !== "string") return { error: "Missing patient id." };
+  if (typeof caseId !== "string") return { error: "Missing case id." };
   if (!getProgramForResearcher(getDb(), programId, user.id)) {
     return { error: "Program not found." };
   }
@@ -39,9 +39,9 @@ export async function createActivityAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
   const activity = createActivity(getDb(), user, { programId, ...parsed.data });
-  revalidatePath(`/patients/${patientId}`);
-  revalidatePath(`/patients/${patientId}/activities`);
-  redirect(`/patients/${patientId}/activities/${activity.id}?created=1`);
+  revalidatePath(`/cases/${caseId}`);
+  revalidatePath(`/cases/${caseId}/activities`);
+  redirect(`/cases/${caseId}/activities/${activity.id}?created=1`);
 }
 
 const statusSchema = z.object({
@@ -60,14 +60,14 @@ export async function updateActivityStatusAction(
     programId: formData.get("programId"),
     status: formData.get("status"),
   });
-  const patientId = formData.get("patientId");
+  const caseId = formData.get("caseId");
   if (!parsed.success) return { error: "Invalid status update." };
   const { activityId, programId, status } = parsed.data;
   if (!getProgramForResearcher(getDb(), programId, user.id)) {
     return { error: "Program not found." };
   }
   setActivityStatus(getDb(), user, activityId, programId, status);
-  const base = typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`;
+  const base = typeof caseId === "string" ? `/cases/${caseId}` : `/cases/${programId}`;
   revalidatePath(`${base}/activities`);
   revalidatePath(`${base}/activities/${activityId}`);
   revalidatePath(base);

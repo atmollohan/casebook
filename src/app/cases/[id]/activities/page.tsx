@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getDb } from "@/lib/db";
-import { listActivities, findPatientById } from "@/lib/db/repo";
+import { listActivities, findCaseById } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
@@ -29,7 +29,7 @@ export default async function ActivitiesTabPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
   const activities = listActivities(db, found.program.id, user.id) ?? [];
 
@@ -37,7 +37,7 @@ export default async function ActivitiesTabPage({ params }: { params: Promise<{ 
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-ink-900">Research activities</h2>
-        <ButtonLink href={`/patients/${id}/activities/new`} icon={<Plus className="size-4" />}>
+        <ButtonLink href={`/cases/${id}/activities/new`} icon={<Plus className="size-4" />}>
           New analysis
         </ButtonLink>
       </div>
@@ -49,7 +49,7 @@ export default async function ActivitiesTabPage({ params }: { params: Promise<{ 
             title="No research activities"
             description="A variant review, literature scan, imaging review, cohort comparison, or statistical analysis."
             action={
-              <ButtonLink href={`/patients/${id}/activities/new`} size="sm">
+              <ButtonLink href={`/cases/${id}/activities/new`} size="sm">
                 <Plus className="size-4" /> Create the first analysis
               </ButtonLink>
             }
@@ -60,7 +60,7 @@ export default async function ActivitiesTabPage({ params }: { params: Promise<{ 
           {activities.map((a) => (
             <li key={a.id}>
               <Link
-                href={`/patients/${id}/activities/${a.id}`}
+                href={`/cases/${id}/activities/${a.id}`}
                 className="card group flex flex-wrap items-center gap-3 p-4 transition-shadow hover:shadow-pop"
               >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">

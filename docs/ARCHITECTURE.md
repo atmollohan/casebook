@@ -11,27 +11,29 @@ Everything else is depth.
 
 ## Part 1 — What Casebook is, in one paragraph
 
-Casebook is a **self-hosted web app for one researcher working on genomic data**. You run it
+Casebook is a **self-hosted web app for one researcher working on case data**. You run it
 on your own machine, you are the only user, and nothing leaves the box. The seed data it ships
 with is synthetic; if you intend to put real files in it, read [Part 4](#part-4--security-at-the-level-a-non-expert-can-verify)
 first, because self-hosted is not the same as safe to expose to a network.
 
-It is a workspace where a **researcher keeps track of the scientific work being done on one
-patient's case**. It is not a medical record and it is not a lab information system. It is the
-"lab notebook plus project folder" for a research investigation: somewhere to keep the files you
-downloaded, write down what you did to them, record what you concluded, cite where that came
-from, and generate a report when you need to hand the story to someone else.
+It is a workspace where a **researcher keeps track of the work being done on one case**. It is
+not a medical record and it is not a lab information system. It is the "lab notebook plus
+project folder" for a research investigation: somewhere to keep the files you gathered, write
+down what you did to them, record what you concluded, cite where that came from, and generate
+a report when you need to hand the story to someone else.
 
-The focus is DNA and oncology, and the sample data and file-format allowlist reflect that
-(VCF, BED, GFF, FASTA, WES calls). The workflow itself is not genomics-specific — it is
-upload → analyze → conclude → cite → report, which suits any kind of data investigation.
+A **case** is the thing being investigated. It is often a person, and the bundled demo data
+leans on DNA and oncology because that is the richest worked example, but a case can equally be
+a sample, a material, a dataset, a device, or a cohort. The workflow — upload → analyze →
+conclude → cite → report — suits any kind of data investigation, and nothing in the data model
+or the code treats one kind of case differently from another.
 
-Every patient in the seeded demo is **synthetic and de-identified** — fake names, fake data,
+Every case in the seeded demo is **synthetic and de-identified** — fake names, fake data,
 fake results. Nothing the app produces may be used to make a clinical decision.
 
 The whole app is about one spine:
 
-> A researcher signs in → opens a patient → sees the research program for that patient
+> A researcher signs in → opens a case → sees the research program for that case
 > → reviews the data files → records the work being done (activities) → writes down
 > what the work found (findings) → attaches supporting sources (evidence) → generates
 > a written research report.
@@ -46,41 +48,50 @@ Think of the app as a stack of folders. Each folder holds the items below it.
 
 ```
 Researcher  (a person who signs in — "you")
-  └── Patient  (one person whose case is being studied — "the subject")
-        └── Research Program  (the ongoing investigation of that patient's case)
-              ├── Data      — files uploaded: WES variants, karyotype, treatment history, etc.
-              ├── Activities — pieces of work: variant review, imaging review, cohort comparison…
+  └── Case  (the thing being studied: a subject, a sample, a material, a device, a dataset…)
+        └── Research Program  (the ongoing investigation of that case)
+              ├── Data      — files uploaded: measurements, variant calls, notes, images…
+              ├── Activities — pieces of work: data review, statistical analysis, comparison…
               ├── Findings   — things the researcher concluded from the work
-              ├── Evidence   — sources backing a finding: a paper, a database, a URL, a DOI
+              ├── Evidence   — sources backing a finding: a paper, a dataset, a measurement, a DOI
               ├── Reports    — the written research report, assembled automatically
               └── History    — a log of every event: "data uploaded", "finding recorded", …
 ```
 
 Key rules:
 
-- **One researcher → many patients.** A researcher owns their patients.
-- **One patient → exactly one research program.** The program is the patient's case.
-- Everything below a patient belongs to that patient and is **cascading**: delete the
-  patient's program and its data, activities, findings, reports, and history go with it.
+- **One researcher → many cases.** A researcher owns their cases.
+- **One case → exactly one research program.** The program is the investigation.
+- Everything below a case belongs to that case and is **cascading**: delete the program's
+  data, activities, findings, reports, and history and they go with it.
 - **Evidence hangs off a finding**, and findings optionally name which activity they
   came from. Deleting an activity keeps the finding (it just loses the link).
-- A researcher can only see their own patients. The app checks this on every request,
+- A researcher can only see their own cases. The app checks this on every request,
   on every page, and on every file download — not just at the menu level.
+
+A case carries a name, a **kind** (subject, material, sample, dataset, cohort, device,
+process, other), a summary, and any **attributes** the investigator defines themselves — flat
+name-and-value pairs such as a collection date or an instrument serial. The app does not
+prescribe which fields an investigation needs and never interprets what is recorded; it
+stores them, shows them in the case header, and carries them into generated reports. They are
+flat and string-valued on purpose: a pair is easy to render, and it is impossible to
+accidentally join or aggregate against. Anything that needs querying across cases belongs in a
+real column, not in an attribute.
 
 ### The tables, in plain words
 
-| Table                 | Plain meaning                           | Belongs to                        |
-| --------------------- | --------------------------------------- | --------------------------------- |
-| `users`               | The researchers who can sign in         | —                                 |
-| `sessions`            | A "signed in on this browser" ticket    | a user                            |
-| `patients`            | The people being studied                | a user                            |
-| `research_programs`   | The investigation into a patient's case | a patient                         |
-| `data_records`        | Files uploaded to the program           | a program                         |
-| `research_activities` | Pieces of research work                 | a program                         |
-| `findings`            | Conclusions recorded by the researcher  | a program (optional: an activity) |
-| `evidence`            | Sources attached to a finding           | a finding                         |
-| `reports`             | Generated research reports              | a program                         |
-| `history_events`      | Audit log of actions taken              | a program                         |
+| Table                 | Plain meaning                          | Belongs to                        |
+| --------------------- | -------------------------------------- | --------------------------------- |
+| `users`               | The researchers who can sign in        | —                                 |
+| `sessions`            | A "signed in on this browser" ticket   | a user                            |
+| `cases`               | The thing being studied                | a user                            |
+| `research_programs`   | The investigation of one case          | a case                            |
+| `data_records`        | Files uploaded to the program          | a program                         |
+| `research_activities` | Pieces of research work                | a program                         |
+| `findings`            | Conclusions recorded by the researcher | a program (optional: an activity) |
+| `evidence`            | Sources attached to a finding          | a finding                         |
+| `reports`             | Generated research reports             | a program                         |
+| `history_events`      | Audit log of actions taken             | a program                         |
 
 ### Diagram (for people who read diagrams)
 
@@ -88,8 +99,8 @@ Each line says "one A has many B".
 
 ```
 users ──< sessions
-users ──< patients
-patients ──< research_programs
+users ──< cases
+cases ──< research_programs
 research_programs ──< data_records
 research_programs ──< research_activities
 research_programs ──< findings
@@ -178,9 +189,9 @@ The rule is enforced twice, on purpose:
 - `ProgramStatusControl` (`src/components/workspace/program-status-control.tsx`) reads the
   table and renders a button per legal move, so the interface cannot offer a step that does
   not make sense. There is no free-text status field anywhere.
-- `updateProgramStatusAction` (`src/actions/patient.ts`) checks the same table again before
+- `updateProgramStatusAction` (`src/actions/case.ts`) checks the same table again before
   the repo is touched. A request can carry any status, so the interface is a convenience and
-  the action is the guarantee. `src/actions/patient.test.ts` proves this by attempting moves
+  the action is the guarantee. `src/actions/case.test.ts` proves this by attempting moves
   the control would never offer.
 
 Every move is written to history as a `program_status` event recording where it came from and
@@ -194,7 +205,7 @@ Generating a report is the app's headline feature, so here is its full journey.
 ```mermaid
 flowchart LR
     A[Researcher clicks Generate Report] --> B[Server checks researcher owns the program]
-    B --> C[Collect: patient, program, data, activities, findings + evidence, history]
+    B --> C[Collect: case, program, data, activities, findings + evidence, history]
     C --> D[Assemble a structured document: sections, tables, lists]
     D --> E[Store as a DRAFT report]
     E --> F[Researcher reviews in the browser]
@@ -213,16 +224,17 @@ the only action that freezes the content permanently.
 The seeded demo is synthetic data, but the security habits are real. These are the
 checks that matter and where each one lives:
 
-| Concern                       | What the app does                                                           | Concrete checks you can run yourself                        |
-| ----------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Signing in                    | Passwords are hashed (bcrypt12); the browser only gets a ticket (cookie)    | A stolen DB file does not expose plaintext passwords        |
-| Stolen cookie                 | The cookie is matched against the database on every request, and it expires | Delete the session row → the user is logged out             |
-| Expired or stale cookie       | Sending you to sign in is a last resort, never a dead end                   | Keep a bad cookie, load any page → you get the sign-in form |
-| Seeing someone else's patient | Ownership is checked on every page and every action, server-side            | Open someone else's patient URL → you get a 404             |
-| Downloading files             | File downloads re-check ownership on the server                             | Request another program's file URL → 403/404                |
-| Uploading files               | Type, size (≤25 MB), and filename extension are validated                   | Try `.exe` or a giant file → rejected                       |
-| Secrets                       | No real secrets are committed to the repo                                   | `.env` is git-ignored                                       |
-| Patient safety                | All data carries a "Synthetic — demo" badge and the UI repeats the warning  | Banner on every dashboard                                   |
+| Concern                    | What the app does                                                           | Concrete checks you can run yourself                        |
+| -------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Signing in                 | Passwords are hashed (bcrypt12); the browser only gets a ticket (cookie)    | A stolen DB file does not expose plaintext passwords        |
+| Stolen cookie              | The cookie is matched against the database on every request, and it expires | Delete the session row → the user is logged out             |
+| Expired or stale cookie    | Sending you to sign in is a last resort, never a dead end                   | Keep a bad cookie, load any page → you get the sign-in form |
+| Seeing someone else's case | Ownership is checked on every page and every action, server-side            | Open someone else's case URL → you get a 404                |
+| Downloading files          | File downloads re-check ownership on the server                             | Request another program's file URL → 403/404                |
+| Uploading files            | Type, size (≤25 MB), and filename extension are validated                   | Try `.exe` or a giant file → rejected                       |
+| Secrets                    | No real secrets are committed to the repo                                   | `.env` is git-ignored                                       |
+| Case safety                | All seeded data carries a "Synthetic — demo" badge and the UI repeats the   | Banner on every dashboard                                   |
+|                            | warning                                                                     |                                                             |
 
 ### Why being signed out never traps you
 
@@ -255,16 +267,16 @@ test that walks the whole request cycle to prove it terminates.
 
 ### Stack
 
-| Layer      | Choice                                                      | File(s)                                                                     |
-| ---------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Framework  | Next.js 15 (App Router), TypeScript                         | `src/app/`                                                                  |
-| Styling    | Tailwind CSS v3                                             | `src/app/globals.css`, `tailwind.config.ts`                                 |
-| Database   | SQLite via better-sqlite3 (single file)                     | `data/casebook.db`                                                          |
-| Data layer | Drizzle ORM (schema + typed queries + migrations)           | `src/lib/db/`                                                               |
-| Auth       | Hand-rolled: bcryptjs + DB session tokens + httpOnly cookie | `src/lib/auth/`                                                             |
-| Uploads    | Local disk under `data/storage/`, random filenames          | `src/lib/files/`                                                            |
-| Tests      | Vitest, real SQLite in memory                               | `src/actions/workflow.test.ts`, `src/actions/patient.test.ts`, `src/lib/**` |
-| Gate       | Prettier + ESLint + tsc + Vitest + `next build`             | `AGENTS.md`, `package.json` (`npm run verify`)                              |
+| Layer      | Choice                                                      | File(s)                                                                  |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Framework  | Next.js 15 (App Router), TypeScript                         | `src/app/`                                                               |
+| Styling    | Tailwind CSS v3                                             | `src/app/globals.css`, `tailwind.config.ts`                              |
+| Database   | SQLite via better-sqlite3 (single file)                     | `data/casebook.db`                                                       |
+| Data layer | Drizzle ORM (schema + typed queries + migrations)           | `src/lib/db/`                                                            |
+| Auth       | Hand-rolled: bcryptjs + DB session tokens + httpOnly cookie | `src/lib/auth/`                                                          |
+| Uploads    | Local disk under `data/storage/`, random filenames          | `src/lib/files/`                                                         |
+| Tests      | Vitest, real SQLite in memory                               | `src/actions/workflow.test.ts`, `src/actions/case.test.ts`, `src/lib/**` |
+| Gate       | Prettier + ESLint + tsc + Vitest + `next build`             | `AGENTS.md`, `package.json` (`npm run verify`)                           |
 
 ### Where the app explains itself
 
@@ -283,9 +295,9 @@ and a researcher without access is refused at every step. Only the request scope
 Everything that touches the database is tested this way rather than against a mock, because a mock cannot
 tell you the query is wrong.
 
-`src/actions/patient.test.ts` covers the two ways a case comes into existence and moves: creating a patient
-and their program (including every optional field left blank, which is how the form actually submits), and
-walking a program through its lifecycle. The lifecycle tests assert the move rules themselves — that the
+`src/actions/case.test.ts` covers the two ways a case comes into existence and moves: creating a case and
+its program (including every optional field left blank, which is how the form actually submits, and including
+cases that are not people at all), and walking a program through its lifecycle. The lifecycle tests assert the move rules themselves — that the
 table names only real statuses, that nothing is a self-move, that `closed` is terminal, and that no program
 can be stranded without a route to `closed`.
 
@@ -295,8 +307,8 @@ can be stranded without a route to `closed`.
 src/
   app/                    Next.js pages (App Router)
     login/                Sign-in page
-    patients/[id]/...     The patient workspace (overview, data, activities, findings, evidence, reports, history)
-    patients/new/         Create patient + program
+    cases/[id]/...        The case workspace (overview, data, activities, findings, evidence, reports, history)
+    cases/new/            Create case + program
     report/[id]/          Report viewer
     help/                 In-app written guide
     api/files/[id]/       Authorized file download endpoint
@@ -305,7 +317,7 @@ src/
     ui/                   Design-system primitives (button, card, badge, form, empty-state, avatar)
     layout/               AppShell: chrome, nav, Help, environment disclosure
     workspace/            Case-workflow components (forms, delete buttons)
-    dashboard/            Program/patient list
+    dashboard/            Program/case list
     onboarding/           First-run tour (client component, localStorage-backed)
   lib/
     db/schema.ts          The data model (tables), in code
@@ -342,17 +354,16 @@ error text reaches the page, and that each state offers a way forward.
 
 ### The one place where raw SQL appears
 
-Almost all queries go through Drizzle's type-safe builder. Handwritten SQL is confined to four
+Almost all queries go through Drizzle's type-safe builder. Handwritten SQL is confined to three
 places, none of it built from user input:
 
 - `queryEvidenceForFindingIds` in `src/lib/db/repo.ts` — fetches evidence for a list of finding
   IDs. It builds an `IN (...)` list by stripping quotes manually rather than using bound
   parameters; correct for today, worth replacing if it ever grows.
-- One templated `update patients set condition_summary = ?` in `src/actions/patient.ts`.
 - One authorization lookup in `src/app/api/files/[id]/route.ts` (it uses the raw driver handle
   because it must authorize before streaming bytes).
-- `nextPatientPid` in `src/lib/db/repo.ts` — a `sql` fragment taking `max()` of the numeric part of
-  the pid, so the next human-readable patient id is derived from the highest one in use rather than
+- `nextCaseCode` in `src/lib/db/repo.ts` — a `sql` fragment taking `max()` of the numeric part of
+  the code, so the next human-readable case code is derived from the highest one in use rather than
   from the row count. A count would hand back a number already taken as soon as retention and
   deletion (Phase 8) removed rows.
 
@@ -364,6 +375,19 @@ New ad-hoc SQL does not go in pages or components. Add a repo function instead.
 2. Run `npm run db:generate` → writes a new SQL file under `drizzle/`.
 3. Next app start runs any pending migrations automatically
    (`src/lib/db/index.ts`, `migrateDb`).
+
+`drizzle/` is tracked in git. It used to be git-ignored, which left a clean clone with no journal
+and no SQL — the app could not start at all, and nothing in the source said why. The generated
+SQL and the generated snapshot are the only record of how an instance's data moves between schema
+versions.
+
+drizzle-kit also generates the wrong SQL for a rename: for the `patients` → `cases` change it emits
+"create `cases`, drop `patients`", which discards every row. That migration is hand-written —
+`ALTER TABLE` renames, adds, and drops instead — with the generated snapshot and journal left
+exactly as generated, and a comment at the top of the `.sql` saying what the generator would have
+done. `src/lib/db/migration.test.ts` is the guard: it builds the previous schema, inserts rows,
+applies the migration, and asserts the rows, the child rows, and the ownership boundary all
+survive.
 
 ### The gate
 

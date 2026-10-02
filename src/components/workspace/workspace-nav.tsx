@@ -14,19 +14,19 @@ import {
 import { cn } from "@/components/ui/cn";
 
 const items = [
-  { href: "/patients/[id]", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/patients/[id]/data", label: "Research data", icon: Database },
-  { href: "/patients/[id]/activities", label: "Activities", icon: FlaskConical },
-  { href: "/patients/[id]/findings", label: "Findings", icon: Lightbulb },
-  { href: "/patients/[id]/evidence", label: "Evidence & sources", icon: BookOpenText },
-  { href: "/patients/[id]/reports", label: "Reports", icon: FileText },
-  { href: "/patients/[id]/history", label: "History", icon: History },
+  { href: "/cases/[id]", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/cases/[id]/data", label: "Research data", icon: Database },
+  { href: "/cases/[id]/activities", label: "Activities", icon: FlaskConical },
+  { href: "/cases/[id]/findings", label: "Findings", icon: Lightbulb },
+  { href: "/cases/[id]/evidence", label: "Evidence & sources", icon: BookOpenText },
+  { href: "/cases/[id]/reports", label: "Reports", icon: FileText },
+  { href: "/cases/[id]/history", label: "History", icon: History },
 ];
 
 export function WorkspaceNav() {
   const pathname = usePathname();
   const params = useParams<{ id: string }>();
-  const base = `/patients/${params.id}`;
+  const base = `/cases/${params.id}`;
 
   return (
     <nav className="flex w-full flex-row gap-1 overflow-x-auto border-b border-ink-200/70 pb-px sm:flex-col sm:border-b-0 sm:pb-0">

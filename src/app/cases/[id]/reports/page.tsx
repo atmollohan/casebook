@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { listReports, findPatientById } from "@/lib/db/repo";
+import { listReports, findCaseById } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
 import { notFound } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export default async function ReportsTabPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
   const reports = listReports(db, found.program.id, user.id) ?? [];
 
@@ -28,7 +28,7 @@ export default async function ReportsTabPage({ params }: { params: Promise<{ id:
       {/* The form is the tab's primary action, always visible. It used to sit behind a
           query-parameter link, which produced a second button with the same label that
           only re-navigated to the current URL — clicking it did nothing at all. */}
-      <GenerateReportForm programId={found.program.id} patientId={id} />
+      <GenerateReportForm programId={found.program.id} caseId={id} />
 
       {reports.length === 0 ? (
         <Card>

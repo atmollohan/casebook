@@ -22,12 +22,15 @@ export default async function DashboardPage({
     reports: programs.reduce((n, p) => n + p.reportCount, 0),
   };
 
-  const flagship = programs.find((p) => p.patient.pid === "CB-P-0001") ?? null;
+  // The tour needs somewhere to point. It is anchored to the most recently touched program
+  // rather than to a hard-coded case code, so it works on any instance — including one whose
+  // owner deleted the seeded cases — and it simply does not open when there is nothing to show.
+  const flagship = programs[0] ?? null;
   let onboardingTarget: OnboardingTarget | null = null;
   if (flagship) {
     const reports = listReports(getDb(), flagship.program.id, user.id) ?? [];
     onboardingTarget = {
-      patientId: flagship.patient.id,
+      caseId: flagship.case.id,
       reportId: reports[0]?.id ?? null,
     };
   }

@@ -34,8 +34,8 @@ export async function uploadDataAction(_prev: DataFormState, formData: FormData)
     return { error: "Program not found." };
   }
 
-  const patientId = formData.get("patientId");
-  const base = typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`;
+  const caseId = formData.get("caseId");
+  const base = typeof caseId === "string" ? `/cases/${caseId}` : `/cases/${programId}`;
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -83,7 +83,7 @@ export async function deleteDataAction(
   const record = deleteDataRecord(getDb(), user, recordId);
   if (!record) return { error: "Record not found." };
   deleteStoredFile(record.storagePath);
-  revalidatePath(`/patients/${path ?? record.programId}/data`);
+  revalidatePath(`/cases/${path ?? record.programId}/data`);
   return {};
 }
 

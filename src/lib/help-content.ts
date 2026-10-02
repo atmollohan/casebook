@@ -26,7 +26,7 @@ export type HelpSection = {
 };
 
 export const HELP_INTRO =
-  "Casebook keeps everything about one patient investigation in one place: the data you upload, the analyses you run, what you conclude from them, and the report you hand off at the end.";
+  "Casebook keeps everything about one investigation in one place: the data you upload, the analyses you run, what you conclude from them, and the report you hand off at the end.";
 
 export const HELP_SECTIONS: HelpSection[] = [
   {
@@ -35,7 +35,15 @@ export const HELP_SECTIONS: HelpSection[] = [
     blocks: [
       {
         kind: "p",
-        text: "Work is grouped by patient. Each patient has one research program, and the program is where the investigation lives. Opening a program from the dashboard takes you to seven tabs that follow the same order every time: the question, the evidence, the reasoning, and the output.",
+        text: "Work is grouped by case. Each case has one research program, and the program is where the investigation lives. Opening a program from the dashboard takes you to seven tabs that follow the same order every time: the question, the evidence, the reasoning, and the output.",
+      },
+      {
+        kind: "p",
+        text: "A case is the thing being investigated, and it does not have to be a person. A subject, a sample, a material, a dataset, a device, and a cohort are all case kinds, and the app treats them identically — the workflow does not change. The kind is set when you create the case and is there to tell a reader what kind of thing they are looking at.",
+      },
+      {
+        kind: "p",
+        text: "Casebook does not know which fields your investigation needs, so it does not give you a fixed set of them. Alongside the name, kind, and summary, a case carries free-form attributes: name-and-value pairs that you define, such as a collection date, an instrument serial, or a cohort size. They appear in the case header and in generated reports, and Casebook stores them without interpreting them.",
       },
       {
         kind: "table",
@@ -82,7 +90,7 @@ export const HELP_SECTIONS: HelpSection[] = [
     blocks: [
       {
         kind: "p",
-        text: "A program is not active the moment you create it. When you register a patient you choose whether the program starts as Planned or Active, and a new case defaults to Planned: the investigation is scoped, and the work begins when you are ready. Where a program sits in this lifecycle tells you — and anyone reading the case later — whether the work is scoped, underway, on hold, or finished. The status appears next to the patient's name, so it is visible from every tab, and the moves available to you sit on the Overview tab.",
+        text: "A program is not active the moment you create it. When you open a case you choose whether the program starts as Planned or Active, and a new case defaults to Planned: the investigation is scoped, and the work begins when you are ready. Where a program sits in this lifecycle tells you — and anyone reading the case later — whether the work is scoped, underway, on hold, or finished. The status appears next to the case name, so it is visible from every tab, and the moves available to you sit on the Overview tab.",
       },
       {
         kind: "table",
@@ -132,7 +140,7 @@ export const HELP_SECTIONS: HelpSection[] = [
       },
       {
         kind: "note",
-        text: "Category is for your own navigation — clinical, genomics, transcriptomics, imaging, lab, or other. It does not change how a file is interpreted.",
+        text: "Category is for your own navigation — measurement, reference, sample data, derived, documentation, clinical, genomics, transcriptomics, imaging, lab, or other. It does not change how a file is interpreted.",
       },
     ],
   },
@@ -165,7 +173,7 @@ export const HELP_SECTIONS: HelpSection[] = [
     blocks: [
       {
         kind: "p",
-        text: "A report is assembled from the current state of the program: patient and program summary, a data index, the activities, the findings with their evidence, and the history. Generate one from the Reports tab at any point.",
+        text: "A report is assembled from the current state of the program: case and program summary, a data index, the activities, the findings with their evidence, and the history. Generate one from the Reports tab at any point.",
       },
       {
         kind: "ul",
@@ -234,8 +242,8 @@ export const HELP_SECTIONS: HelpSection[] = [
             "The file is not on disk. It was most likely deleted from another session while the record remained.",
           ],
           [
-            "A patient link returns 404",
-            "The program is not visible to your account. Each researcher only sees their own patients.",
+            "A case link returns 404",
+            "The program is not visible to your account. Each researcher only sees their own cases.",
           ],
           [
             "A generated report is missing recent work",
@@ -253,9 +261,29 @@ export const HELP_SECTIONS: HelpSection[] = [
 
 export const HELP_GLOSSARY: Array<{ term: string; definition: string }> = [
   {
+    term: "Case",
+    definition:
+      "The thing being investigated, and the unit everything else hangs off. A case has a name, a kind, a summary, and any attributes you define, and it owns one research program.",
+  },
+  {
+    term: "Case kind",
+    definition:
+      "What sort of thing the case is: subject, material, sample, dataset, cohort, device, process, or other. It is descriptive only — the workflow is the same for every kind, and the app never treats one kind differently from another.",
+  },
+  {
+    term: "Attributes",
+    definition:
+      "Name-and-value pairs you attach to a case yourself, such as a collection date or an instrument serial. Casebook does not prescribe which fields you need and never interprets what you record; it stores and displays them, and carries them into generated reports.",
+  },
+  {
+    term: "Case code",
+    definition:
+      "A short human-readable reference assigned when the case is created, in the form CB-C-0001. Useful when you are talking about a case or reading a report, where the row id means nothing to a reader.",
+  },
+  {
     term: "Research program",
     definition:
-      "The container for one patient's investigation. It holds the hypothesis, the data, the activities, and the reports.",
+      "The container for one investigation. It holds the hypothesis, the data, the activities, and the reports.",
   },
   {
     term: "Program status",
@@ -275,65 +303,102 @@ export const HELP_GLOSSARY: Array<{ term: string; definition: string }> = [
   {
     term: "Evidence",
     definition:
-      "A source that supports a finding: a publication, a database record, a clinical record, a dataset, or a note.",
-  },
-  { term: "Variant", definition: "A difference from the reference genome at a particular position." },
-  {
-    term: "SNV",
-    definition: "Single nucleotide variant — a one-letter change. The most common kind of variant.",
-  },
-  {
-    term: "Structural variant",
-    definition: "A larger change: a deletion, a duplication, or an inversion spanning many bases.",
-  },
-  {
-    term: "VCF",
-    definition: "Variant Call Format, the standard text layout for a list of variants and their annotations.",
-  },
-  {
-    term: "BED",
-    definition: "A plain interval file listing genomic regions of interest, usually with coordinates.",
-  },
-  {
-    term: "GFF",
-    definition: "General Feature Format — a file describing where genes and transcripts sit on a genome.",
-  },
-  {
-    term: "FASTA",
-    definition: "A text format for biological sequences, used here to carry reference sequence excerpts.",
-  },
-  {
-    term: "Read depth (DP)",
-    definition: "How many times a position was read. Higher depth means more confidence in the call.",
-  },
-  {
-    term: "Allele frequency (AF)",
-    definition:
-      "How common a variant is in the sample. A frequency near 1.0 suggests it is present in most reads.",
-  },
-  {
-    term: "VUS",
-    definition: "Variant of uncertain significance — a real difference whose effect is not yet established.",
-  },
-  {
-    term: "Pathogenic",
-    definition:
-      "A classification meaning a variant is considered likely to cause disease. It is a claim about evidence, not a diagnosis.",
-  },
-  {
-    term: "Karyotype",
-    definition:
-      "A schematic of a genome's chromosomes. Structural differences are often visible here before sequencing.",
-  },
-  {
-    term: "Cohort",
-    definition:
-      "A group of patients compared against each other, used to see whether a finding is specific or common.",
+      "A source that supports a finding: a publication, a database record, a dataset, a measurement, a note, or a clinical record.",
   },
   {
     term: "Draft",
     definition: "A report that can still be regenerated. Reports stay drafts until explicitly finalized.",
   },
+  {
+    term: "Cohort",
+    definition:
+      "A group of cases compared against each other, to see whether a finding is specific or common.",
+  },
 ];
+
+/**
+ * The complete term list, grouped so the page can render it in one place and the filter can
+ * search all of it.
+ *
+ * The core group is the vocabulary of the app itself. Domain groups are the words a reader
+ * meets in the bundled demo seed, which is richest in DNA and oncology work. They are listed
+ * as that field's vocabulary rather than as something the app requires: nothing in the data
+ * model or the workflow is specific to genomics, and a case with no variant in it uses exactly
+ * the same features. Keeping them in one filtered list is also what stops a reader having to
+ * guess which section a term is hiding in.
+ */
+export const HELP_TERM_GROUPS: {
+  id: string;
+  title: string;
+  blurb?: string;
+  terms: Array<{ term: string; definition: string }>;
+}[] = [
+  {
+    id: "core",
+    title: "Casebook",
+    terms: HELP_GLOSSARY,
+  },
+  {
+    id: "genomics",
+    title: "Genomics and variant calling",
+    blurb:
+      "The words below belong to a particular field, not to Casebook. They are here because the bundled demo seed is richest in DNA and oncology work, so you will meet them there.",
+    terms: [
+      { term: "Variant", definition: "A difference from the reference genome at a particular position." },
+      {
+        term: "SNV",
+        definition: "Single nucleotide variant — a one-letter change. The most common kind of variant.",
+      },
+      {
+        term: "Structural variant",
+        definition: "A larger change: a deletion, a duplication, or an inversion spanning many bases.",
+      },
+      {
+        term: "VCF",
+        definition:
+          "Variant Call Format, the standard text layout for a list of variants and their annotations.",
+      },
+      {
+        term: "BED",
+        definition: "A plain interval file listing genomic regions of interest, usually with coordinates.",
+      },
+      {
+        term: "GFF",
+        definition: "General Feature Format — a file describing where genes and transcripts sit on a genome.",
+      },
+      {
+        term: "FASTA",
+        definition: "A text format for biological sequences, used here to carry reference sequence excerpts.",
+      },
+      {
+        term: "Read depth (DP)",
+        definition: "How many times a position was read. Higher depth means more confidence in the call.",
+      },
+      {
+        term: "Allele frequency (AF)",
+        definition:
+          "How common a variant is in the sample. A frequency near 1.0 suggests it is present in most reads.",
+      },
+      {
+        term: "VUS",
+        definition:
+          "Variant of uncertain significance — a real difference whose effect is not yet established.",
+      },
+      {
+        term: "Pathogenic",
+        definition:
+          "A classification meaning a variant is considered likely to cause disease. It is a claim about evidence, not a diagnosis.",
+      },
+      {
+        term: "Karyotype",
+        definition:
+          "A schematic of a genome's chromosomes. Structural differences are often visible here before sequencing.",
+      },
+    ],
+  },
+];
+
+/** Every term across every group, for the filter. */
+export const HELP_ALL_TERMS = HELP_TERM_GROUPS.flatMap((g) => g.terms);
 
 export const HELP_TOUR_HREF = "/?onboard=1";

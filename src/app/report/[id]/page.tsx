@@ -20,7 +20,7 @@ export default async function ReportViewerPage({ params }: { params: Promise<{ i
   const found = getReportAccessible(db, reportId, user.id);
   if (!found) notFound();
 
-  const { report, programId, patientId } = found;
+  const { report, programId, caseId } = found;
   let content: ReportContent = [];
   try {
     content = JSON.parse(report.contentJson ?? "[]") as ReportContent;
@@ -34,14 +34,14 @@ export default async function ReportViewerPage({ params }: { params: Promise<{ i
     <div className="page-container print-container py-8">
       <div className="print-hide mb-5 flex flex-wrap items-center justify-between gap-3">
         <Link
-          href={`/patients/${patientId}/reports`}
+          href={`/cases/${caseId}/reports`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-700/70 hover:text-brand-700"
         >
           <ArrowLeft className="size-4" /> Back to program reports
         </Link>
         <div className="flex items-center gap-2">
           <PrintButton />
-          {!isFinal && <FinalizeReportForm reportId={reportId} programId={programId} patientId={patientId} />}
+          {!isFinal && <FinalizeReportForm reportId={reportId} programId={programId} caseId={caseId} />}
         </div>
       </div>
 

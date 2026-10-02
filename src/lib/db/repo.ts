@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { type Db } from "@/lib/db";
 import {
-  patients,
+  cases,
   researchPrograms,
   dataRecords,
   researchActivities,
@@ -11,7 +11,7 @@ import {
   historyEvents,
   sessions,
   users,
-  type Patient,
+  type Case,
   type ResearchProgram,
   type DataRecord,
   type ResearchActivity,
@@ -22,8 +22,10 @@ import {
   type User,
 } from "@/lib/db/schema";
 import { newId, now } from "@/lib/utils/format";
+import { serializeAttributes } from "@/lib/attributes";
 import type {
   ProgramStatus,
+  CaseKind,
   DataCategory,
   ActivityType,
   ActivityStatus,
@@ -32,7 +34,7 @@ import type {
   EvidenceSourceType,
   HistoryEventType,
 } from "@/lib/constants";
-import { PROGRAM_STATUS_LABELS, PROGRAM_DEFAULT_STATUS } from "@/lib/constants";
+import { PROGRAM_STATUS_LABELS, PROGRAM_DEFAULT_STATUS, CASE_KIND_LABELS } from "@/lib/constants";
 
 /**
  * A stored status rendered for a human. Tolerates a value that is no longer a known status
@@ -40,6 +42,10 @@ import { PROGRAM_STATUS_LABELS, PROGRAM_DEFAULT_STATUS } from "@/lib/constants";
  */
 function programStatusLabel(status: string): string {
   return PROGRAM_STATUS_LABELS[status as ProgramStatus] ?? status;
+}
+
+function caseKindLabel(kind: string): string {
+  return CASE_KIND_LABELS[kind as CaseKind] ?? kind;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,11 +98,11 @@ export function pruneExpiredSessions(db: Db) {
 }
 
 // ---------------------------------------------------------------------------
-// Patients + programs
+// Cases + programs
 // ---------------------------------------------------------------------------
 
 export interface ProgramSummary {
-  patient: Patient;
+  case: Case;
   program: ResearchProgram;
   dataCount: number;
   activityCount: number;
@@ -107,16 +113,16 @@ export interface ProgramSummary {
 export function listProgramsForResearcher(db: Db, userId: string): ProgramSummary[] {
   const rows = db
     .select({
-      patient: patients,
+      case: cases,
       program: researchPrograms,
     })
-    .from(patients)
-    .innerJoin(researchPrograms, eq(researchPrograms.patientId, patients.id))
-    .where(eq(patients.ownerId, userId))
+    .from(cases)
+    .innerJoin(researchPrograms, eq(researchPrograms.caseId, cases.id))
+    .where(eq(cases.ownerId, userId))
     .orderBy(desc(researchPrograms.updatedAt))
     .all();
   return rows.map((r) => ({
-    patient: r.patient,
+    case: r.case,
     program: r.program,
     dataCount: countData(db, r.program.id),
     activityCount: countActivities(db, r.program.id),
@@ -166,74 +172,77 @@ export function getProgramForResearcher(db: Db, programId: string, userId: strin
   return found ?? null;
 }
 
-export function findPatientById(
+export function findCaseById(
   db: Db,
-  patientId: string,
+  caseId: string,
   userId: string,
-): { patient: Patient; program: ResearchProgram } | null {
+): { case: Case; program: ResearchProgram } | null {
   const rows = db
     .select({
-      patient: patients,
+      case: cases,
       program: researchPrograms,
     })
-    .from(patients)
-    .innerJoin(researchPrograms, eq(researchPrograms.patientId, patients.id))
-    .where(and(eq(patients.id, patientId), eq(patients.ownerId, userId)))
+    .from(cases)
+    .innerJoin(researchPrograms, eq(researchPrograms.caseId, cases.id))
+    .where(and(eq(cases.id, caseId), eq(cases.ownerId, userId)))
     .limit(1)
     .all();
   if (rows.length === 0) return null;
   return rows[0];
 }
 
-export function nextPatientPid(db: Db): string {
-  // Derived from the highest pid already issued, never from the row count: retention and
-  // deletion (Phase 8) remove rows, and a count would then hand back a pid that is already
-  // taken, failing the unique index on an otherwise valid create.
+export function nextCaseCode(db: Db): string {
+  // Derived from the highest code already issued, never from the row count: retention and
+  // deletion remove rows, and a count would then hand back a code that is already taken,
+  // failing the unique index on an otherwise valid create.
   const row = db
-    .select({ n: sql<number | null>`max(cast(replace(${patients.pid}, 'CB-P-', '') as integer))` })
-    .from(patients)
+    .select({ n: sql<number | null>`max(cast(replace(${cases.code}, 'CB-C-', '') as integer))` })
+    .from(cases)
     .get();
   const highest = row?.n ?? 0;
-  return `CB-P-${String(highest + 1).padStart(4, "0")}`;
+  return `CB-C-${String(highest + 1).padStart(4, "0")}`;
 }
 
-export function createPatientAndProgram(
+/**
+ * A case may be a person, a material, a device, or anything else; nothing here assumes which.
+ * `attributes` are the owner's own label pairs rather than a schema the app prescribes, so they
+ * are serialized here and never interpreted.
+ */
+export function createCaseAndProgram(
   db: Db,
   user: User,
   input: {
-    firstName: string;
-    lastName: string;
-    birthYear?: number | null;
-    sex?: string | null;
-    conditionSummary?: string;
-    consentStatus?: string;
+    title: string;
+    subtitle?: string;
+    kind?: CaseKind;
+    summary?: string;
+    attributes?: Record<string, string>;
     programTitle: string;
     programDescription?: string;
     programHypothesis?: string;
     focusArea?: string;
     status?: ProgramStatus;
   },
-): { patient: Patient; program: ResearchProgram } {
-  const patientId = newId("pat");
+): { case: Case; program: ResearchProgram } {
+  const caseId = newId("cas");
   const programId = newId("prg");
   const nowMs = now();
-  const pid = nextPatientPid(db);
-  const patient: Patient = {
-    id: patientId,
-    pid,
+  const code = nextCaseCode(db);
+  const row: Case = {
+    id: caseId,
+    code,
     ownerId: user.id,
-    firstName: input.firstName.trim(),
-    lastName: input.lastName.trim(),
-    birthYear: input.birthYear ?? null,
-    sex: input.sex ?? null,
-    conditionSummary: input.conditionSummary?.trim() || null,
-    consentStatus: input.consentStatus ?? "consented",
+    title: input.title.trim(),
+    subtitle: input.subtitle?.trim() || null,
+    kind: input.kind ?? "subject",
+    summary: input.summary?.trim() || null,
+    attributes: serializeAttributes(input.attributes),
     createdAt: nowMs,
     updatedAt: nowMs,
   };
   const program: ResearchProgram = {
     id: programId,
-    patientId,
+    caseId,
     title: input.programTitle.trim(),
     description: input.programDescription?.trim() || null,
     hypothesis: input.programHypothesis?.trim() || null,
@@ -243,7 +252,7 @@ export function createPatientAndProgram(
     updatedAt: nowMs,
   };
   db.transaction((tx) => {
-    tx.insert(patients).values(patient).run();
+    tx.insert(cases).values(row).run();
     tx.insert(researchPrograms).values(program).run();
     logHistory(tx, {
       programId,
@@ -251,10 +260,48 @@ export function createPatientAndProgram(
       eventType: "program_created",
       entityType: "research_program",
       entityId: programId,
-      summary: `Research program “${program.title}” created for patient ${patient.pid}`,
+      summary: `Research program “${program.title}” created for ${caseKindLabel(row.kind)} ${row.code} “${row.title}”`,
     });
   });
-  return { patient, program };
+  return { case: row, program };
+}
+
+/** Edit the case itself. Does not touch the program, which has its own update path. */
+export function updateCase(
+  db: Db,
+  user: User,
+  programId: string,
+  input: {
+    title?: string;
+    subtitle?: string;
+    kind?: CaseKind;
+    summary?: string;
+    attributes?: Record<string, string>;
+  },
+) {
+  const program = db
+    .select({ caseId: researchPrograms.caseId })
+    .from(researchPrograms)
+    .where(eq(researchPrograms.id, programId))
+    .get();
+  if (!program) return;
+
+  const patch: Partial<Case> = {};
+  if (typeof input.title === "string") patch.title = input.title.trim();
+  if (typeof input.subtitle === "string") patch.subtitle = input.subtitle.trim() || null;
+  if (input.kind) patch.kind = input.kind;
+  if (typeof input.summary === "string") patch.summary = input.summary.trim() || null;
+  if (input.attributes) patch.attributes = serializeAttributes(input.attributes);
+  patch.updatedAt = now();
+  db.update(cases).set(patch).where(eq(cases.id, program.caseId)).run();
+  logHistory(db, {
+    programId,
+    actorId: user.id,
+    eventType: "case_updated",
+    entityType: "case",
+    entityId: program.caseId,
+    summary: "Case details updated",
+  });
 }
 
 export function updateProgram(
@@ -766,18 +813,18 @@ export function getReportAccessible(
   db: Db,
   reportId: string,
   userId: string,
-): { report: Report; programId: string; patientId: string } | null {
+): { report: Report; programId: string; caseId: string } | null {
   const report = db.select().from(reports).where(eq(reports.id, reportId)).get();
   if (!report) return null;
   if (!programAllowed(db, report.programId, userId)) return null;
-  const patient = db
-    .select({ id: patients.id, pid: patients.pid })
+  const row = db
+    .select({ id: cases.id, code: cases.code })
     .from(researchPrograms)
-    .innerJoin(patients, eq(patients.id, researchPrograms.patientId))
+    .innerJoin(cases, eq(cases.id, researchPrograms.caseId))
     .where(eq(researchPrograms.id, report.programId))
     .get();
-  if (!patient) return null;
-  return { report, programId: report.programId, patientId: patient.id };
+  if (!row) return null;
+  return { report, programId: report.programId, caseId: row.id };
 }
 
 export function createReport(
@@ -908,10 +955,10 @@ type InsertableDb = {
 
 export function programAllowed(db: Db, programId: string, userId: string): boolean {
   const row = db
-    .select({ pid: patients.id })
+    .select({ id: cases.id })
     .from(researchPrograms)
-    .innerJoin(patients, eq(patients.id, researchPrograms.patientId))
-    .where(and(eq(researchPrograms.id, programId), eq(patients.ownerId, userId)))
+    .innerJoin(cases, eq(cases.id, researchPrograms.caseId))
+    .where(and(eq(researchPrograms.id, programId), eq(cases.ownerId, userId)))
     .limit(1)
     .all();
   return row.length > 0;

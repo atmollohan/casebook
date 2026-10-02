@@ -3,7 +3,7 @@ import type { ProgramSummary } from "@/lib/db/repo";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { formatDate } from "@/lib/utils/format";
-import { PROGRAM_STATUS_LABELS, type ProgramStatus } from "@/lib/constants";
+import { PROGRAM_STATUS_LABELS, CASE_KIND_LABELS, type ProgramStatus, type CaseKind } from "@/lib/constants";
 import { Database, FlaskConical, Lightbulb, FileText, ChevronRight } from "lucide-react";
 
 const statusTones: Record<ProgramStatus, "brand" | "green" | "amber" | "blue" | "slate"> = {
@@ -15,21 +15,21 @@ const statusTones: Record<ProgramStatus, "brand" | "green" | "amber" | "blue" | 
 };
 
 export function ProgramRow({ program }: { program: ProgramSummary }) {
-  const { patient, program: p } = program;
-  const name = `${patient.lastName}, ${patient.firstName}`;
+  const { case: record, program: p } = program;
+  const kind = CASE_KIND_LABELS[record.kind as CaseKind] ?? record.kind;
   return (
     <Link
-      href={`/patients/${patient.id}`}
+      href={`/cases/${record.id}`}
       className="card group flex flex-col gap-4 p-5 transition-shadow hover:shadow-pop sm:flex-row sm:items-center"
     >
       <div className="flex items-start gap-3.5 sm:w-72 sm:shrink-0">
-        <Avatar name={name} />
+        <Avatar name={record.title} />
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold text-ink-900 group-hover:text-brand-800">
-            {name}
+            {record.title}
           </div>
-          <div className="mt-0.5 text-xs text-ink-700/60">
-            {patient.pid} · {patient.birthYear ? `b. ${patient.birthYear}` : "birth year n/a"}
+          <div className="mt-0.5 truncate text-xs text-ink-700/60">
+            {record.code} · {kind}
           </div>
         </div>
       </div>
@@ -40,10 +40,8 @@ export function ProgramRow({ program }: { program: ProgramSummary }) {
           <Badge tone={statusTones[p.status as ProgramStatus] ?? "slate"} dot>
             {PROGRAM_STATUS_LABELS[p.status as ProgramStatus] ?? p.status}
           </Badge>
-          {patient.conditionSummary && (
-            <span className="hidden truncate text-[13px] text-ink-700/60 lg:inline">
-              {patient.conditionSummary}
-            </span>
+          {record.summary && (
+            <span className="hidden truncate text-[13px] text-ink-700/60 lg:inline">{record.summary}</span>
           )}
         </div>
         <div className="mt-1.5 hidden text-[13px] text-ink-700/60 sm:block">

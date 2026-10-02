@@ -6,8 +6,8 @@ import { getDb, migrateDb, resetDb } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import {
   createUser,
-  createPatientAndProgram,
-  findPatientById,
+  createCaseAndProgram,
+  findCaseById,
   listProgramsForResearcher,
   createDataRecord,
   listDataRecords,
@@ -25,7 +25,7 @@ import {
   getReportAccessible,
   listHistory,
 } from "@/lib/db/repo";
-import { generateReportContent } from "@/lib/report/generate";
+import { generateReport } from "@/lib/report/generate";
 
 let userId: string;
 
@@ -40,39 +40,38 @@ beforeAll(() => {
   userId = user.id;
 });
 
-function makePatient() {
-  return createPatientAndProgram(getDb(), { id: userId } as never, {
-    firstName: "Ada",
-    lastName: "Lovelace",
-    birthYear: 1979,
-    sex: "female",
-    conditionSummary: "Test condition",
-    consentStatus: "consented",
+function makeCase() {
+  return createCaseAndProgram(getDb(), { id: userId } as never, {
+    title: "Ada Lovelace",
+    subtitle: "Test condition",
+    kind: "subject",
+    summary: "Test condition",
+    attributes: { "Birth year": "1979" },
     programTitle: "Test program",
     programHypothesis: "A test hypothesis",
     focusArea: "Genomics",
   });
 }
 
-describe("patient + program lifecycle", () => {
-  it("creates a patient, program, pid, and program_created history event", () => {
-    const { patient, program } = makePatient();
-    expect(patient.pid).toMatch(/^CB-P-\d{4}$/);
-    expect(program.patientId).toBe(patient.id);
+describe("case + program lifecycle", () => {
+  it("creates a case, program, code, and program_created history event", () => {
+    const { case: created, program } = makeCase();
+    expect(created.code).toMatch(/^CB-C-\d{4}$/);
+    expect(program.caseId).toBe(created.id);
 
-    const found = findPatientById(getDb(), patient.id, userId);
-    expect(found?.patient.id).toBe(patient.id);
+    const found = findCaseById(getDb(), created.id, userId);
+    expect(found?.case.id).toBe(created.id);
     expect(found?.program.id).toBe(program.id);
 
     const events = listHistory(getDb(), program.id, userId) ?? [];
     expect(events.some((e) => e.eventType === "program_created")).toBe(true);
   });
 
-  it("issues sequential pids", () => {
-    const a = makePatient();
-    const b = makePatient();
-    const seqA = Number(a.patient.pid.split("-").pop());
-    const seqB = Number(b.patient.pid.split("-").pop());
+  it("issues sequential codes", () => {
+    const a = makeCase();
+    const b = makeCase();
+    const seqA = Number(a.case.code.split("-").pop());
+    const seqB = Number(b.case.code.split("-").pop());
     expect(seqB).toBe(seqA + 1);
   });
 
@@ -82,16 +81,16 @@ describe("patient + program lifecycle", () => {
       name: "Dr. Other",
       passwordHash: hashPassword("x"),
     });
-    const { patient, program } = makePatient();
+    const { case: created, program } = makeCase();
     expect(listProgramsForResearcher(getDb(), userId).some((s) => s.program.id === program.id)).toBe(true);
     expect(listProgramsForResearcher(getDb(), other.id).some((s) => s.program.id === program.id)).toBe(false);
-    expect(findPatientById(getDb(), patient.id, other.id)).toBeNull();
+    expect(findCaseById(getDb(), created.id, other.id)).toBeNull();
   });
 });
 
 describe("data records", () => {
   it("creates, lists, and deletes a record with history", () => {
-    const { program } = makePatient();
+    const { program } = makeCase();
     const rec = createDataRecord(getDb(), {
       programId: program.id,
       uploadedById: userId,
@@ -117,7 +116,7 @@ describe("data records", () => {
 
 describe("activities", () => {
   it("creates an activity and walks planned → in_progress → completed", () => {
-    const { program } = makePatient();
+    const { program } = makeCase();
     const act = createActivity(getDb(), { id: userId } as never, {
       programId: program.id,
       title: "Variant burden review",
@@ -146,7 +145,7 @@ describe("activities", () => {
 
 describe("findings + evidence", () => {
   it("records a finding tied to an activity with reporter and evidence", () => {
-    const { program } = makePatient();
+    const { program } = makeCase();
     const act = createActivity(getDb(), { id: userId } as never, {
       programId: program.id,
       title: "Scan literature",
@@ -195,14 +194,14 @@ describe("findings + evidence", () => {
       name: "O",
       passwordHash: hashPassword("x"),
     });
-    const { program } = makePatient();
+    const { program } = makeCase();
     expect(listFindings(getDb(), program.id, other.id)).toBeNull();
   });
 });
 
 describe("reports", () => {
   it("generates content, creates a report, and finalizes it", () => {
-    const { patient, program } = makePatient();
+    const { case: created, program } = makeCase();
     createDataRecord(getDb(), {
       programId: program.id,
       uploadedById: userId,
@@ -214,9 +213,10 @@ describe("reports", () => {
       storagePath: "s/x.csv",
     });
 
-    const content = generateReportContent(getDb(), program.id, userId);
+    const report0 = generateReport(getDb(), program.id, userId);
+    const content = report0.content;
     const titles = content.map((s) => s.title);
-    expect(titles).toContain("Patient overview");
+    expect(titles).toContain("Case overview");
     expect(titles).toContain("Research program");
     expect(titles).toContain("Methodology & limitations");
     const dataSection = content.find((s) => s.title === "Research data");
@@ -225,14 +225,14 @@ describe("reports", () => {
     const report = createReport(getDb(), {
       programId: program.id,
       generatedById: userId,
-      title: `Research report — ${patient.pid}`,
+      title: report0.title,
       summary: "summary",
       contentJson: JSON.stringify(content),
     });
     expect(report.status).toBe("draft");
 
     const accessible = getReportAccessible(getDb(), report.id, userId);
-    expect(accessible?.patientId).toBe(patient.id);
+    expect(accessible?.caseId).toBe(created.id);
 
     finalizeReport(getDb(), { id: userId } as never, report.id, program.id);
     const finalized = getReportAccessible(getDb(), report.id, userId);

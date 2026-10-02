@@ -15,7 +15,7 @@ const { GenerateReportForm } = await import("@/components/workspace/generate-rep
  * it must actually submit.
  */
 describe("generate report control", () => {
-  const html = renderToStaticMarkup(<GenerateReportForm programId="prg_test" patientId="pat_test" />);
+  const html = renderToStaticMarkup(<GenerateReportForm programId="prg_test" caseId="pat_test" />);
 
   it("offers exactly one Generate report control", () => {
     expect(html.match(/Generate report/g) ?? []).toHaveLength(1);

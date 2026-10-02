@@ -30,7 +30,7 @@ export async function createFindingAction(
 ): Promise<FindingFormState> {
   const user = await requireUser();
   const programId = formData.get("programId");
-  const patientId = formData.get("patientId");
+  const caseId = formData.get("caseId");
   const fromActivity = formData.get("fromActivity");
   if (typeof programId !== "string") return { error: "Missing program id." };
   if (!getProgramForResearcher(getDb(), programId, user.id)) {
@@ -49,7 +49,7 @@ export async function createFindingAction(
   const { activityId, ...rest } = parsed.data;
   createFinding(getDb(), user, { programId, ...rest, activityId: activityId ?? null });
 
-  const base = typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`;
+  const base = typeof caseId === "string" ? `/cases/${caseId}` : `/cases/${programId}`;
   const backTo =
     typeof fromActivity === "string" && fromActivity.length > 0
       ? `${base}/activities/${fromActivity}?finding=1`
@@ -66,7 +66,7 @@ export async function updateFindingAction(
   const user = await requireUser();
   const findingId = formData.get("findingId");
   const programId = formData.get("programId");
-  const patientId = formData.get("patientId");
+  const caseId = formData.get("caseId");
   if (typeof findingId !== "string" || typeof programId !== "string") {
     return { error: "Missing finding or program id." };
   }
@@ -85,7 +85,7 @@ export async function updateFindingAction(
   }
   const { activityId } = parsed.data;
   updateFinding(getDb(), user, findingId, programId, { ...parsed.data, activityId: activityId ?? null });
-  const base = typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`;
+  const base = typeof caseId === "string" ? `/cases/${caseId}` : `/cases/${programId}`;
   revalidatePath(`${base}/findings`);
   revalidatePath(`${base}/activities`);
   return {};
@@ -107,7 +107,7 @@ export async function addEvidenceAction(
   const user = await requireUser();
   const findingId = formData.get("findingId");
   const programId = formData.get("programId");
-  const patientId = formData.get("patientId");
+  const caseId = formData.get("caseId");
   if (typeof findingId !== "string" || typeof programId !== "string") {
     return { error: "Missing finding or program id." };
   }
@@ -135,7 +135,7 @@ export async function addEvidenceAction(
     note: parsed.data.note || null,
     attachmentDataRecordId: parsed.data.attachmentDataRecordId,
   });
-  const base = typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`;
+  const base = typeof caseId === "string" ? `/cases/${caseId}` : `/cases/${programId}`;
   revalidatePath(`${base}/findings`);
   revalidatePath(`${base}/evidence`);
   revalidatePath(`${base}/activities`);
@@ -150,12 +150,12 @@ export async function removeEvidenceAction(
   const evidenceId = formData.get("evidenceId");
   const findingId = formData.get("findingId");
   const programId = formData.get("programId");
-  const patientId = formData.get("patientId");
+  const caseId = formData.get("caseId");
   if (typeof evidenceId !== "string" || typeof findingId !== "string" || typeof programId !== "string") {
     return { error: "Missing ids." };
   }
   removeEvidence(getDb(), user, evidenceId, findingId, programId);
-  const base = typeof patientId === "string" ? `/patients/${patientId}` : `/patients/${programId}`;
+  const base = typeof caseId === "string" ? `/cases/${caseId}` : `/cases/${programId}`;
   revalidatePath(`${base}/findings`);
   revalidatePath(`${base}/evidence`);
   return {};

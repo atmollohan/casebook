@@ -23,7 +23,7 @@ import { getDb, migrateDb, resetDb } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import {
   createUser,
-  createPatientAndProgram,
+  createCaseAndProgram,
   createReport,
   getReportAccessible,
   listReports,
@@ -50,13 +50,12 @@ beforeAll(() => {
   });
   ownerId = owner.id;
   otherUserId = other.id;
-  const { program } = createPatientAndProgram(getDb(), { id: ownerId } as never, {
-    firstName: "Rosalind",
-    lastName: "Franklin",
-    birthYear: 1980,
-    sex: "female",
-    conditionSummary: "Test condition",
-    consentStatus: "consented",
+  const { program } = createCaseAndProgram(getDb(), { id: ownerId } as never, {
+    title: "Rosalind Franklin",
+    subtitle: "Test condition",
+    kind: "subject",
+    summary: "Test condition",
+    attributes: { "Birth year": "1980" },
     programTitle: "Test program",
     programHypothesis: "A test hypothesis",
     focusArea: "Genomics",
@@ -76,18 +75,18 @@ function form(values: Record<string, string>) {
 
 describe("generateReportAction", () => {
   it("creates a saved draft report and returns the id needed to open it", async () => {
-    const result = await generateReportAction({}, form({ programId: ownerProgramId, patientId: "pat_1" }));
+    const result = await generateReportAction({}, form({ programId: ownerProgramId, caseId: "cas_1" }));
 
     expect(result.error).toBeUndefined();
     expect(result.reportId).toBeTruthy();
 
     const saved = getReportAccessible(getDb(), result.reportId as string, ownerId);
     expect(saved?.report.status).toBe("draft");
-    expect(saved?.report.contentJson).toContain("Patient overview");
+    expect(saved?.report.contentJson).toContain("Case overview");
   });
 
   it("records the generation in the program history", async () => {
-    const result = await generateReportAction({}, form({ programId: ownerProgramId, patientId: "pat_1" }));
+    const result = await generateReportAction({}, form({ programId: ownerProgramId, caseId: "cas_1" }));
     const events = listHistory(getDb(), ownerProgramId, ownerId) ?? [];
 
     expect(result.reportId).toBeTruthy();
@@ -96,7 +95,7 @@ describe("generateReportAction", () => {
 
   it("adds a new report each time instead of replacing the previous one", async () => {
     const before = (listReports(getDb(), ownerProgramId, ownerId) ?? []).length;
-    await generateReportAction({}, form({ programId: ownerProgramId, patientId: "pat_1" }));
+    await generateReportAction({}, form({ programId: ownerProgramId, caseId: "cas_1" }));
     const after = listReports(getDb(), ownerProgramId, ownerId) ?? [];
 
     expect(after).toHaveLength(before + 1);
@@ -107,7 +106,7 @@ describe("generateReportAction", () => {
     currentUserId = otherUserId;
     const before = listReports(getDb(), ownerProgramId, otherUserId) ?? [];
 
-    const result = await generateReportAction({}, form({ programId: ownerProgramId, patientId: "pat_1" }));
+    const result = await generateReportAction({}, form({ programId: ownerProgramId, caseId: "cas_1" }));
 
     expect(result.reportId).toBeUndefined();
     expect(result.error).toBe("Program not found.");
@@ -115,7 +114,7 @@ describe("generateReportAction", () => {
   });
 
   it("reports a missing program id instead of failing silently", async () => {
-    const result = await generateReportAction({}, form({ patientId: "pat_1" }));
+    const result = await generateReportAction({}, form({ caseId: "cas_1" }));
 
     expect(result.reportId).toBeUndefined();
     expect(result.error).toBe("Missing program id.");
@@ -139,7 +138,7 @@ describe("finalizeReportAction", () => {
 
     const result = await finalizeReportAction(
       {},
-      form({ reportId: created.id, programId: ownerProgramId, patientId: "pat_1" }),
+      form({ reportId: created.id, programId: ownerProgramId, caseId: "cas_1" }),
     );
     const after = getReportAccessible(getDb(), created.id, ownerId);
 
@@ -160,7 +159,7 @@ describe("finalizeReportAction", () => {
 
     const result = await finalizeReportAction(
       {},
-      form({ reportId: created.id, programId: ownerProgramId, patientId: "pat_1" }),
+      form({ reportId: created.id, programId: ownerProgramId, caseId: "cas_1" }),
     );
 
     expect(result.error).toBe("Report not found.");

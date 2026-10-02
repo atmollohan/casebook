@@ -1,10 +1,9 @@
 SYNTHETIC CONSULTATION NOTE — DEMO DATA ONLY
 ============================================
 
-Patient: SYN-DEMO-0001    MRN: SYN-DEMO-MRN-4471    DOB: 1984-02-11
+Case: SYN-DEMO-0001    Reference: SYN-DEMO-REF-4471    Opened: 2026-01-20
 Program: SYN-DEMO — Suspected inherited metabolic disorder
 Consultant: Dr. A. Researcher (synthetic persona)
-Date: 2026-01-20
 
 REASON FOR CONSULTATION
 Three-month history of progressive fatigue and exercise intolerance.

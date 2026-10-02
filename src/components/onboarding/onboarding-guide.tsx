@@ -13,7 +13,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Check, Circle, Compass, X } from "lucide-react";
 
 export interface OnboardingTarget {
-  patientId: string;
+  caseId: string;
   reportId: string | null;
 }
 
@@ -26,15 +26,15 @@ interface StepDef {
 }
 
 const WORKFLOW =
-  "A research program follows one patient: review the data, run an activity, record what you find, back it with sources, then generate a report.";
+  "A research program follows one case: review the data, run an activity, record what you find, back it with sources, then generate a report.";
 
 function buildSteps(target: OnboardingTarget): StepDef[] {
-  const base = `/patients/${target.patientId}`;
+  const base = `/cases/${target.caseId}`;
   return [
     {
       id: "directory",
       title: "Start from the program list",
-      body: "One row per patient research program.",
+      body: "One row per case research program.",
     },
     {
       id: "data",
@@ -63,7 +63,7 @@ export function OnboardingGuide({
   const [firstVisit, setFirstVisit] = useState(false);
   const [state, setState] = useState<OnboardingState>({ dismissed: false, done: [] });
   const hasTarget = target != null;
-  const targetPatientId = target?.patientId;
+  const targetCaseId = target?.caseId;
   const targetReportId = target?.reportId;
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export function OnboardingGuide({
       setState(next);
       saveOnboardingState(window.localStorage, next);
     }
-  }, [autoOpen, hasTarget, targetPatientId, targetReportId]);
+  }, [autoOpen, hasTarget, targetCaseId, targetReportId]);
 
   const close = (dismiss: boolean) => {
     if (dismiss) {

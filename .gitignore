@@ -23,8 +23,10 @@ next-env.d.ts
 data/
 *.log
 
-# drizzle generated
-drizzle/
+# NOTE: drizzle/ is deliberately NOT ignored. The SQL files and the generated snapshot under
+# drizzle/meta/ are the only record of how an instance's data moves between schema versions.
+# With them untracked, a clean clone has no migrations at all and `npm run setup` fails, and a
+# hand-written data migration would exist only on the machine that wrote it.
 
 # coverage
 coverage/

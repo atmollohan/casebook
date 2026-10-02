@@ -4,7 +4,8 @@ import * as schema from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
 import { createUser, logHistory } from "@/lib/db/repo";
 import { saveUpload, resolveDataDir } from "@/lib/files/storage";
-import { generateReportContent } from "@/lib/report/generate";
+import { generateReport } from "@/lib/report/generate";
+import { serializeAttributes } from "@/lib/attributes";
 import { now, MS_DAY, newId } from "@/lib/utils/format";
 
 const DAY = MS_DAY;
@@ -34,16 +35,15 @@ function seedUser(db: Db): { id: string; name: string } {
   return { id: user.id, name: user.name };
 }
 
-function createPatientProgram(
+function createCaseProgram(
   ctx: SeedCtx,
   input: {
-    pid: string;
-    firstName: string;
-    lastName: string;
-    birthYear: number;
-    sex: string;
-    conditionSummary: string;
-    consentStatus: string;
+    code: string;
+    title: string;
+    subtitle?: string;
+    kind: string;
+    summary: string;
+    attributes?: Record<string, string>;
     program: {
       title: string;
       description: string;
@@ -53,22 +53,21 @@ function createPatientProgram(
       createdAt: number;
     };
   },
-): { patientId: string; programId: string } {
+): { caseId: string; programId: string } {
   const { db } = ctx;
-  const patientId = newId("pat");
+  const caseId = newId("cas");
   const programId = newId("prg");
   const created = input.program.createdAt;
-  db.insert(schema.patients)
+  db.insert(schema.cases)
     .values({
-      id: patientId,
-      pid: input.pid,
+      id: caseId,
+      code: input.code,
       ownerId: ctx.userId,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      birthYear: input.birthYear,
-      sex: input.sex,
-      conditionSummary: input.conditionSummary,
-      consentStatus: input.consentStatus,
+      title: input.title,
+      subtitle: input.subtitle ?? null,
+      kind: input.kind,
+      summary: input.summary,
+      attributes: serializeAttributes(input.attributes),
       createdAt: created,
       updatedAt: created,
     })
@@ -76,7 +75,7 @@ function createPatientProgram(
   db.insert(schema.researchPrograms)
     .values({
       id: programId,
-      patientId,
+      caseId,
       title: input.program.title,
       description: input.program.description,
       hypothesis: input.program.hypothesis,
@@ -92,10 +91,10 @@ function createPatientProgram(
     eventType: "program_created",
     entityType: "research_program",
     entityId: programId,
-    summary: `Research program “${input.program.title}” created for patient ${input.pid}`,
+    summary: `Research program “${input.program.title}” created for ${input.code} “${input.title}”`,
     createdAt: created,
   });
-  return { patientId, programId };
+  return { caseId, programId };
 }
 
 function seedDataFile(
@@ -420,24 +419,31 @@ export function runSeed() {
   fs.mkdirSync(resolveDataDir(), { recursive: true });
   const db = getDb();
   const user = seedUser(db);
-  const alreadySeeded = db.$client.prepare("select id from patients where pid = ?").get("CB-P-0001") as
+  const alreadySeeded = db.$client.prepare("select id from cases where code = ?").get("CB-C-0001") as
     { id: string } | undefined;
   if (alreadySeeded) {
-    console.log("Seed data already present; skipping patient seeding.");
+    console.log("Seed data already present; skipping case seeding.");
     return user;
   }
   const ctx: SeedCtx = { db, userId: user.id, userName: user.name };
 
-  // --- Patient 1: flagship, fully built out --------------------------------
-  const pat1 = createPatientProgram(ctx, {
-    pid: "CB-P-0001",
-    firstName: "Patricia",
-    lastName: "Okafor",
-    birthYear: 1969,
-    sex: "female",
-    conditionSummary:
+  // --- Case 1: flagship, fully built out ----------------------------------
+  // The strongest worked example, and the one the DNA/oncology focus belongs to. It is a
+  // `subject` case like any other; nothing about it is special-cased by the app.
+  const case1 = createCaseProgram(ctx, {
+    code: "CB-C-0001",
+    title: "Patricia Okafor",
+    subtitle: "treatment-refractory CLL",
+    kind: "subject",
+    summary:
       "Chronic lymphocytic leukemia (CLL), treatment-refractory course; research focus on TP53 disruption and clonal dynamics.",
-    consentStatus: "consented",
+    attributes: {
+      "Birth year": "1969",
+      Sex: "Female",
+      "Consent status": "Consent on file",
+      Specimen: "Peripheral blood, 3 draws",
+      Enrolment: "2026-06-30",
+    },
     program: {
       title: "TP53 disruption in treatment-refractory CLL",
       description:
@@ -451,7 +457,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     programCreatedAt: at(90),
     filename: "okafor_wes_variant_calls.csv",
     content: CLL_VARIANTS_CSV,
@@ -463,7 +469,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     programCreatedAt: at(90),
     filename: "okafor_sv_calls.vcf",
     content: CLL_SV_VCF,
@@ -475,7 +481,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     programCreatedAt: at(90),
     filename: "okafor_karyotype.txt",
     content: KARYOTYPE_TXT,
@@ -486,7 +492,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     programCreatedAt: at(90),
     filename: "okafor_treatment_history.md",
     content: TREATMENT_MD,
@@ -497,7 +503,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     programCreatedAt: at(90),
     filename: "okafor_cbc_serial.csv",
     content: CBC_CSV,
@@ -508,18 +514,18 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     programCreatedAt: at(90),
     filename: "okafor_clinical_reference.txt",
     content: CLINICAL_REFERENCE_TXT,
     title: "Initial consult summary (reference)",
-    category: "clinical",
+    category: "documentation",
     description: "Deidentified reference summary placed in the program context.",
     uploadedDaysAgo: 40,
   });
 
   const act1 = seedActivity(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     title: "Assess TP53 variant burden in tumor WES",
     activityType: "variant_analysis",
     description:
@@ -531,7 +537,7 @@ export function runSeed() {
   });
 
   const act2 = seedActivity(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     title: "Literature scan: 17p deletion and CLL therapy resistance",
     activityType: "literature_review",
     description:
@@ -543,7 +549,7 @@ export function runSeed() {
   });
 
   const act3 = seedActivity(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     title: "Correlate lymphocyte kinetics with TP53 status",
     activityType: "statistical_analysis",
     description:
@@ -554,7 +560,7 @@ export function runSeed() {
   });
 
   const f1 = seedFinding(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     activityId: act1.id,
     title: "Biallelic TP53 disruption in the dominant clone",
     description:
@@ -565,7 +571,7 @@ export function runSeed() {
   });
 
   const f2 = seedFinding(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     activityId: act3.id,
     title: "Expanding clone carrying SF3B1 K700E",
     description:
@@ -576,7 +582,7 @@ export function runSeed() {
   });
 
   const f3 = seedFinding(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     activityId: null,
     title: "Cytogenetic confirmation of 17p and 13q deletions",
     description:
@@ -587,7 +593,7 @@ export function runSeed() {
   });
 
   const f4 = seedFinding(ctx, {
-    programId: pat1.programId,
+    programId: case1.programId,
     activityId: act2.id,
     title: "Resistance profile aligns with published TP53-loss cohorts",
     description:
@@ -599,7 +605,7 @@ export function runSeed() {
 
   seedEvidence(ctx, {
     findingId: f1.id,
-    programId: pat1.programId,
+    programId: case1.programId,
     sourceType: "publication",
     title: "TP53 disruption and 17p deletion as independent risk factors in CLL",
     url: "https://pubmed.ncbi.nlm.nih.gov/26384929/",
@@ -608,7 +614,7 @@ export function runSeed() {
   });
   seedEvidence(ctx, {
     findingId: f1.id,
-    programId: pat1.programId,
+    programId: case1.programId,
     sourceType: "database",
     title: "COSMIC genomic mutation catalogue, TP53 (synthetic mirror)",
     url: "https://cancer.sanger.ac.uk/cosmic/gene/analysis?ln=TP53",
@@ -617,7 +623,7 @@ export function runSeed() {
   });
   seedEvidence(ctx, {
     findingId: f2.id,
-    programId: pat1.programId,
+    programId: case1.programId,
     sourceType: "dataset",
     title: "Serial WES variant calls (synthetic sequencing dataset)",
     note: "Primary dataset analysed for clone expansion.",
@@ -625,7 +631,7 @@ export function runSeed() {
   });
   seedEvidence(ctx, {
     findingId: f3.id,
-    programId: pat1.programId,
+    programId: case1.programId,
     sourceType: "clinical_record",
     title: "Cytogenetics result, karyotype analysis (synthetic)",
     note: "Clinical correlate within the research program.",
@@ -633,7 +639,7 @@ export function runSeed() {
   });
   seedEvidence(ctx, {
     findingId: f4.id,
-    programId: pat1.programId,
+    programId: case1.programId,
     sourceType: "publication",
     title: "High-risk genomic features and survival in treatment-naive CLL",
     doi: "10.1182/blood.2020007684",
@@ -642,22 +648,27 @@ export function runSeed() {
   });
 
   seedReport(ctx, {
-    programId: pat1.programId,
-    title: "Research report · Okafor, Patricia",
+    programId: case1.programId,
+    title: "Research report · Patricia Okafor",
     status: "draft",
     createdAtDaysAgo: 3,
   });
 
-  // --- Patient 2: mid-maturity --------------------------------------------
-  const pat2 = createPatientProgram(ctx, {
-    pid: "CB-P-0002",
-    firstName: "Marcus",
-    lastName: "Whitfield",
-    birthYear: 1974,
-    sex: "male",
-    conditionSummary:
+  // --- Case 2: mid-maturity ------------------------------------------------
+  const case2 = createCaseProgram(ctx, {
+    code: "CB-C-0002",
+    title: "Marcus Whitfield",
+    subtitle: "metastatic triple-negative breast cancer",
+    kind: "subject",
+    summary:
       "Metastatic triple-negative breast cancer (TNBC); research focus on homologous recombination deficiency and platinum sensitivity.",
-    consentStatus: "consented",
+    attributes: {
+      "Birth year": "1974",
+      Sex: "Male",
+      "Consent status": "Consent on file",
+      Stage: "IV, de novo",
+      Specimen: "Tumor biopsy, primary + 2 mets",
+    },
     program: {
       title: "Homologous recombination deficiency in TNBC",
       description:
@@ -671,7 +682,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat2.programId,
+    programId: case2.programId,
     programCreatedAt: at(40),
     filename: "whitfield_panel_qc.csv",
     content: TNBC_QC_CSV,
@@ -681,7 +692,7 @@ export function runSeed() {
     uploadedDaysAgo: 27,
   });
   seedDataFile(ctx, {
-    programId: pat2.programId,
+    programId: case2.programId,
     programCreatedAt: at(40),
     filename: "whitfield_hrd_score.json",
     content: HRD_JSON,
@@ -691,7 +702,7 @@ export function runSeed() {
     uploadedDaysAgo: 20,
   });
   seedDataFile(ctx, {
-    programId: pat2.programId,
+    programId: case2.programId,
     programCreatedAt: at(40),
     filename: "whitfield_ct_imaging_note.txt",
     content: IMAGING_TXT,
@@ -702,7 +713,7 @@ export function runSeed() {
   });
 
   const actB = seedActivity(ctx, {
-    programId: pat2.programId,
+    programId: case2.programId,
     title: "Verify HRD scar score against luminance thresholds",
     activityType: "statistical_analysis",
     description:
@@ -713,7 +724,7 @@ export function runSeed() {
   });
 
   const fB = seedFinding(ctx, {
-    programId: pat2.programId,
+    programId: case2.programId,
     activityId: actB.id,
     title: "Composite HRD score above internal reference threshold",
     description:
@@ -725,7 +736,7 @@ export function runSeed() {
 
   seedEvidence(ctx, {
     findingId: fB.id,
-    programId: pat2.programId,
+    programId: case2.programId,
     sourceType: "publication",
     title: "Genomic scars as biomarkers of homologous recombination deficiency",
     doi: "10.1056/NEJMoa1401443",
@@ -733,16 +744,19 @@ export function runSeed() {
     createdAtDaysAgo: 14,
   });
 
-  // --- Patient 3: fresh enrollment (empty states) --------------------------
-  createPatientProgram(ctx, {
-    pid: "CB-P-0003",
-    firstName: "Elena",
-    lastName: "Kovalski",
-    birthYear: 1988,
-    sex: "female",
-    conditionSummary:
-      "Suspected familial adenomatous polyposis; research protocol enrollment under active review.",
-    consentStatus: "consent_pending",
+  // --- Case 3: fresh start (empty states) ----------------------------------
+  createCaseProgram(ctx, {
+    code: "CB-C-0003",
+    title: "Elena Kovalski",
+    subtitle: "suspected familial adenomatous polyposis",
+    kind: "subject",
+    summary: "Suspected familial adenomatous polyposis; research protocol enrollment under active review.",
+    attributes: {
+      "Birth year": "1988",
+      Sex: "Female",
+      "Consent status": "Pending verification",
+      Enrolment: "2026-09-23",
+    },
     program: {
       title: "APC-associated polyposis risk characterization",
       description:
@@ -754,16 +768,19 @@ export function runSeed() {
     },
   });
 
-  // --- Patient 4: paused ------------------------------------------------
-  const pat4 = createPatientProgram(ctx, {
-    pid: "CB-P-0004",
-    firstName: "Raymond",
-    lastName: "Silva",
-    birthYear: 1952,
-    sex: "male",
-    conditionSummary:
-      "Chordoma (clival); research cohort on brachyury-driven tumor biology. Enrollment paused.",
-    consentStatus: "consented",
+  // --- Case 4: paused ------------------------------------------------------
+  const case4 = createCaseProgram(ctx, {
+    code: "CB-C-0004",
+    title: "Raymond Silva",
+    subtitle: "clival chordoma",
+    kind: "subject",
+    summary: "Chordoma (clival); research cohort on brachyury-driven tumor biology. Enrollment paused.",
+    attributes: {
+      "Birth year": "1952",
+      Sex: "Male",
+      "Consent status": "Consent on file",
+      "Tissue available": "Pending adjudication",
+    },
     program: {
       title: "Brachyury pathway status in clival chordoma",
       description: "Research data catalogued; program paused pending tissue-availability decision.",
@@ -775,7 +792,7 @@ export function runSeed() {
   });
 
   seedDataFile(ctx, {
-    programId: pat4.programId,
+    programId: case4.programId,
     programCreatedAt: at(150),
     filename: "silva_rnaseq_gene_counts.csv",
     content: `gene,counts_1,counts_2,mean_tpm,fpkm
@@ -791,29 +808,200 @@ CD24,1402,1301,296.2,145.2`,
     uploadedDaysAgo: 98,
   });
   seedDataFile(ctx, {
-    programId: pat4.programId,
+    programId: case4.programId,
     programCreatedAt: at(150),
-    filename: "silva_consent_qc.txt",
-    content: `Consent & QC record (synthetic)
+    filename: "silva_enrollment_qc.txt",
+    content: `Enrollment & QC record (synthetic)
 - Enrollment: complete
 - Consent: on file
 - Tissue availability: pending adjudication
 - Program status: paused by investigator
 `,
-    title: "Consent / QC record",
-    category: "other",
+    title: "Enrollment / QC record",
+    category: "documentation",
     description: "Administrative reference note.",
     uploadedDaysAgo: 96,
   });
 
   seedActivity(ctx, {
-    programId: pat4.programId,
+    programId: case4.programId,
     title: "Draft analysis plan for T-locus expression",
     activityType: "manuscript_draft",
     description: "Outlined analysis plan for brachyury expression cohort write-up. Superseded by pause.",
     hypothesis: "T expression strata define outcome subgroups.",
     status: "planned",
     createdAtDaysAgo: 30,
+  });
+
+  // -------------------------------------------------------------------------
+  // Non-human cases. These exist to make the general model visible: a subject is
+  // one case kind among several, and the app itself treats them identically.
+  // -------------------------------------------------------------------------
+
+  // --- Case 5: a material sample, not a person ------------------------------
+  const case5 = createCaseProgram(ctx, {
+    code: "CB-C-0005",
+    title: "Sediment core 14-B",
+    subtitle: "lake basin, 0–40 cm",
+    kind: "material",
+    summary:
+      "Frozen sediment core from a monitored catchment. Research focus on nutrient flux and organic-matter stability.",
+    attributes: {
+      "Sample type": "Sediment core",
+      Depth: "0–40 cm",
+      "Collection date": "2026-08-11",
+      Storage: "-20 °C",
+      "Chain of custody": "CB-CUST-0442",
+    },
+    program: {
+      title: "Phosphorus retention across the sediment column",
+      description:
+        "Serial porewater extractions and burn-loss fractions across depth, compared against upstream reference sites.",
+      hypothesis: "Legacy phosphorus is concentrated in the upper 12 cm and declines sharply with depth.",
+      focusArea: "Environmental chemistry",
+      status: "active",
+      createdAt: at(70),
+    },
+  });
+
+  seedDataFile(ctx, {
+    programId: case5.programId,
+    programCreatedAt: at(70),
+    filename: "core14b_porewater.csv",
+    content: `depth_cm,dissolved_p_ug_l,ammonium_ug_l,ph
+0,84.2,61.0,6.8
+4,77.9,58.4,6.9
+8,71.3,55.1,7.0
+12,52.6,48.7,7.1
+20,31.4,39.2,7.2
+30,19.8,30.6,7.3
+40,12.1,26.9,7.4`,
+    title: "Porewater chemistry by depth",
+    category: "measurement",
+    description: "Synthetic depth profile, triplicate means.",
+    uploadedDaysAgo: 58,
+  });
+  seedDataFile(ctx, {
+    programId: case5.programId,
+    programCreatedAt: at(70),
+    filename: "core14b_burn_loss.csv",
+    content: `depth_cm,organic_carbon_pct,total_n_pct,loi_pct
+0,11.4,1.02,32.6
+4,10.9,0.98,31.1
+8,10.1,0.94,28.8
+12,8.6,0.81,24.2
+20,6.2,0.59,17.4
+30,4.1,0.38,11.6
+40,2.8,0.26,7.9`,
+    title: "Loss-on-ignition and organic carbon",
+    category: "measurement",
+    description: "Synthetic combustion-series results.",
+    uploadedDaysAgo: 44,
+  });
+
+  const act5 = seedActivity(ctx, {
+    programId: case5.programId,
+    title: "Compare phosphorus depth profile against reference sites",
+    activityType: "cohort_comparison",
+    description:
+      "Contrasting core 14-B against the two upstream reference cores to separate catchment effects from baseline.",
+    hypothesis: "Catchment sites show a steeper surface phosphorus gradient than reference sites.",
+    status: "in_progress",
+    createdAtDaysAgo: 22,
+  });
+
+  const f5 = seedFinding(ctx, {
+    programId: case5.programId,
+    activityId: act5.id,
+    title: "Legacy phosphorus concentrated in the upper 12 cm",
+    description:
+      "Dissolved phosphorus falls from 84.2 µg/L at the surface to 52.6 µg/L at 12 cm, a 38% decline, then tapers gradually below that. The surface enrichment is consistent with recent loading rather than steady-state release.",
+    category: "observation",
+    significance: "high",
+    createdAtDaysAgo: 20,
+  });
+
+  seedEvidence(ctx, {
+    findingId: f5.id,
+    programId: case5.programId,
+    sourceType: "dataset",
+    title: "Upstream reference core chemistry, sites R1 and R2",
+    note: "Companion reference dataset, same extraction protocol.",
+    createdAtDaysAgo: 20,
+  });
+
+  // --- Case 6: a device under characterisation -----------------------------
+  const case6 = createCaseProgram(ctx, {
+    code: "CB-C-0006",
+    title: "Thermal imaging rig 3",
+    subtitle: "bench prototype",
+    kind: "device",
+    summary: "Bench prototype imaging rig under calibration study ahead of field deployment.",
+    attributes: {
+      Build: "Rev C",
+      Sensor: "FLIR Lepton 3.5",
+      Serial: "CB-DEV-0031",
+      "Last serviced": "2026-07-30",
+      Operator: "Lab 2",
+    },
+    program: {
+      title: "Emissivity calibration across common surface finishes",
+      description:
+        "Comparing apparent-temperature error against reference readings for anodised, painted, and bare aluminium coupons.",
+      hypothesis: "Bare aluminium shows the largest emissivity error and the largest correction band.",
+      focusArea: "Instrumentation",
+      status: "active",
+      createdAt: at(55),
+    },
+  });
+
+  seedDataFile(ctx, {
+    programId: case6.programId,
+    programCreatedAt: at(55),
+    filename: "rig3_calibration_log.csv",
+    content: `timestamp,surface,reference_c,apparent_c,error_c
+2026-08-20T09:14,anodised,42.0,41.6,0.4
+2026-08-20T09:22,anodised,58.5,57.9,0.6
+2026-08-20T09:30,painted,42.0,41.1,0.9
+2026-08-20T09:38,painted,58.5,57.2,1.3
+2026-08-20T09:46,aluminium,42.0,38.4,3.6
+2026-08-20T09:54,aluminium,58.5,53.1,5.4`,
+    title: "Calibration sweep, reference vs apparent temperature",
+    category: "measurement",
+    description: "Synthetic six-point sweep with a contact reference thermometer.",
+    uploadedDaysAgo: 48,
+  });
+
+  const act6 = seedActivity(ctx, {
+    programId: case6.programId,
+    title: "Fit correction bands per surface finish",
+    activityType: "statistical_analysis",
+    description:
+      "Deriving per-surface offset and slope from the calibration sweep, and checking residuals against the instrument's stated accuracy.",
+    hypothesis: "A single global correction will not hold across all three finishes.",
+    status: "completed",
+    createdAtDaysAgo: 30,
+    completedDaysAgo: 25,
+  });
+
+  const f6 = seedFinding(ctx, {
+    programId: case6.programId,
+    activityId: act6.id,
+    title: "Aluminium needs a surface-specific correction band",
+    description:
+      "Apparent temperature under-reads bare aluminium by 3.6 °C at 42 °C and 5.4 °C at 58.5 °C. A single global correction derived from the painted coupon would leave errors above the instrument's ±2 °C spec.",
+    category: "limitation",
+    significance: "medium",
+    createdAtDaysAgo: 24,
+  });
+
+  seedEvidence(ctx, {
+    findingId: f6.id,
+    programId: case6.programId,
+    sourceType: "measurement",
+    title: "Reference thermometer calibration certificate, 2026-03",
+    note: "Traceability for the contact reference used in all six points.",
+    createdAtDaysAgo: 24,
   });
 
   return seedUser(db);
@@ -826,8 +1014,8 @@ function seedReport(
   const { db } = ctx;
   let contentJson: string;
   try {
-    const content = generateReportContent(db, input.programId, ctx.userId);
-    contentJson = JSON.stringify(content);
+    const report = generateReport(db, input.programId, ctx.userId);
+    contentJson = JSON.stringify(report.content);
   } catch {
     contentJson = "[]";
   }

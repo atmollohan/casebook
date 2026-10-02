@@ -1,5 +1,11 @@
 import { requireUser } from "@/lib/server/auth";
-import { HELP_GLOSSARY, HELP_INTRO, HELP_SECTIONS, HELP_TOUR_HREF, type HelpBlock } from "@/lib/help-content";
+import {
+  HELP_INTRO,
+  HELP_SECTIONS,
+  HELP_TERM_GROUPS,
+  HELP_TOUR_HREF,
+  type HelpBlock,
+} from "@/lib/help-content";
 import { GlossaryFilter } from "@/components/help/glossary-filter";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
@@ -167,7 +173,7 @@ export default async function HelpPage() {
                   </a>
                 </h2>
                 <div className="mt-3.5">
-                  <GlossaryFilter terms={HELP_GLOSSARY} />
+                  <GlossaryFilter groups={HELP_TERM_GROUPS} />
                 </div>
               </CardBody>
             </Card>

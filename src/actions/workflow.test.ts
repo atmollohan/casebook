@@ -56,7 +56,7 @@ import { getDb, migrateDb, resetDb } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import {
   createUser,
-  createPatientAndProgram,
+  createCaseAndProgram,
   listDataRecords,
   listActivities,
   listFindings,
@@ -72,7 +72,7 @@ import { generateReportAction, finalizeReportAction } from "@/actions/reports";
 
 let ownerId: string;
 let strangerId: string;
-let patientId: string;
+let caseId: string;
 let programId: string;
 
 beforeAll(() => {
@@ -93,18 +93,17 @@ beforeAll(() => {
   ownerId = owner.id;
   strangerId = stranger.id;
 
-  const created = createPatientAndProgram(getDb(), owner, {
-    firstName: "Ada",
-    lastName: "Nkemelu",
-    birthYear: 2014,
-    sex: "female",
-    conditionSummary: "Unexplained developmental regression",
-    consentStatus: "consented",
+  const created = createCaseAndProgram(getDb(), owner, {
+    title: "Ada Nkemelu",
+    subtitle: "Unexplained developmental regression",
+    kind: "subject",
+    summary: "Unexplained developmental regression",
+    attributes: { "Birth year": "2014" },
     programTitle: "Whole exome analysis",
     programHypothesis: "A coding variant explains the regression",
     focusArea: "Genomics",
   });
-  patientId = created.patient.id;
+  caseId = created.case.id;
   programId = created.program.id;
 });
 
@@ -129,7 +128,7 @@ function sampleFile(name = "serial_cbc.csv") {
   return new File([bytes], name, { type: "text/csv" });
 }
 
-const base = () => ({ programId, patientId });
+const base = () => ({ programId, caseId });
 
 describe("case lifecycle", () => {
   it("walks a program from empty to a finalized report", async () => {
@@ -170,7 +169,7 @@ describe("case lifecycle", () => {
         }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirects[0]).toMatch(/^\/patients\/.+\/activities\/act_/);
+    expect(redirects[0]).toMatch(/^\/cases\/.+\/activities\/act_/);
 
     const activities = listActivities(getDb(), programId, ownerId)!;
     expect(activities).toHaveLength(1);
@@ -229,7 +228,7 @@ describe("case lifecycle", () => {
 
     const finalized = await finalizeReportAction(
       {},
-      form({ reportId: generated.reportId!, programId, patientId }),
+      form({ reportId: generated.reportId!, programId, caseId }),
     );
     expect(finalized.error).toBeUndefined();
     expect(getReportAccessible(getDb(), reportId, ownerId)!.report.status).toBe("final");
@@ -370,7 +369,7 @@ describe("a researcher who does not own the program is refused at every step", (
     const res = await generateReportAction({}, form(base()));
     expect(res.error).toBe("Program not found.");
 
-    const finalize = await finalizeReportAction({}, form({ reportId: reportId, programId, patientId }));
+    const finalize = await finalizeReportAction({}, form({ reportId, programId, caseId }));
     // Opaque on purpose: it does not confirm the report exists.
     expect(finalize.error).toBe("Report not found.");
     expect(getReportAccessible(getDb(), reportId, strangerId)).toBeNull();

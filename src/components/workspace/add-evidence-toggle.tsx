@@ -8,11 +8,11 @@ import { Plus } from "lucide-react";
 export function AddEvidenceToggle({
   findingId,
   programId,
-  patientId,
+  caseId,
 }: {
   findingId: string;
   programId: string;
-  patientId: string;
+  caseId: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -30,7 +30,7 @@ export function AddEvidenceToggle({
       </Button>
       {open && (
         <div className="mt-3 rounded-lg border border-ink-100 bg-white p-4">
-          <AddEvidenceForm findingId={findingId} programId={programId} patientId={patientId} />
+          <AddEvidenceForm findingId={findingId} programId={programId} caseId={caseId} />
         </div>
       )}
     </div>

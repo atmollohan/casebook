@@ -97,7 +97,7 @@ src/
     ui/           Primitives: button, card, badge, form, empty-state. Design-system only.
     layout/       AppShell: chrome, nav, session controls, environment disclosure.
     workspace/    Feature components for the case workflow.
-    dashboard/    Program/patient list UI.
+    dashboard/    Program/case list UI.
     onboarding/   First-run tour (client component, localStorage-backed).
   lib/
     db/           Drizzle schema + repo functions. All queries live here.
@@ -108,16 +108,16 @@ src/
     seed/         Synthetic dataset definition and insertion.
     browser/      Client-safe storage helpers.
 scripts/          setup.ts, seed.ts (run via tsx).
-drizzle/          Generated SQL migrations.
+drizzle/          SQL migrations + generated snapshots. Tracked in git: a clean clone
+                  cannot migrate without them.
 .planning/        GSD planning: PROJECT, ROADMAP, STATE, ASSUMPTIONS, phases/.
 ```
 
 Rules that follow from that layout:
 
-- **All SQL lives in `src/lib/db/repo.ts`**, parameterized. The sanctioned exceptions are
-  `src/actions/patient.ts` (one templated update) and `src/app/api/files/[id]/route.ts`
-  (one authorization lookup). Do not add new ad-hoc queries in pages or components; add a
-  repo function instead. Never interpolate user input into SQL.
+- **All SQL lives in `src/lib/db/repo.ts`**, parameterized. The only sanctioned exception is
+  `src/app/api/files/[id]/route.ts` (one authorization lookup). Do not add new ad-hoc queries
+  in pages or components; add a repo function instead. Never interpolate user input into SQL.
 - **Server Components by default.** Add `"use client"` only for interactivity (state, effects,
   event handlers). Pages currently render on the server; do not move them client-side for
   convenience.
@@ -174,9 +174,28 @@ This app is intentionally **simple, minimal, and quiet**. When adding UI:
 
 ## 7. Data, migrations, and storage
 
-- Schema changes are made in `src/lib/db/schema.ts`, then `npm run db:generate`. Never edit
-  files in `drizzle/` by hand; never use `db:push` against anything but a local scratch
-  database.
+- Schema changes are made in `src/lib/db/schema.ts`, then `npm run db:generate`. Never edit the
+  generated snapshot or journal under `drizzle/meta/` by hand; never use `db:push` against
+  anything but a local scratch database.
+- **The one exception is a migration drizzle-kit cannot express:** a table rename, a column
+  rename, or a data movement between columns. For those, keep the **generated snapshot and
+  journal entry exactly as generated** and rewrite only the `.sql` file, opening it with a
+  comment that says what the generator would have done and why the hand-written version is
+  required. `drizzle/0001_silky_turbo.sql` is the worked example: drizzle-kit generates it as
+  "create `cases`, drop `patients`", which discards every row, and its copy statement selects a
+  column that does not exist at that point in the script. Never ship a data migration that was
+  not read line by line.
+- Two SQLite constraints make these migrations safe, and both are load-bearing:
+  - **The migrator runs each migration inside an explicit transaction**
+    (`drizzle-orm/sqlite-core/dialect.js`), and `PRAGMA foreign_keys = OFF` is a **no-op inside a
+    transaction**. A `DROP TABLE` in a migration file will cascade and can silently delete child
+    rows. Use `ALTER TABLE` — rename, add column, drop column — which does not touch referential
+    integrity.
+  - **SQLite cannot add a NOT NULL column to a table that already has rows** without a default.
+    Add it as `NOT NULL DEFAULT ''` and backfill every row in the same migration. Enforce the real
+    constraint in the server action; the default is a backstop for raw SQL, not a supported value.
+- A migration that moves an instance's data needs a test: build the _previous_ schema, insert
+  rows, apply the migration, and assert the rows are still readable and still authorized.
 - Seed data is synthetic by construction. `npm run setup` builds the local database and
   seeds it; `npm run seed` reseeds.
 - Uploaded files go through the `src/lib/files/storage.ts` adapter. Do not call `fs` directly

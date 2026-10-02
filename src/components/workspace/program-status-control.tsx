@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateProgramStatusAction } from "@/actions/patient";
+import { updateProgramStatusAction } from "@/actions/case";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, CircleCheck, Flag } from "lucide-react";
@@ -57,11 +57,11 @@ const moveCopy: Partial<
  */
 export function ProgramStatusControl({
   programId,
-  patientId,
+  caseId,
   current,
 }: {
   programId: string;
-  patientId: string;
+  caseId: string;
   current: ProgramStatus;
 }) {
   const [state, formAction, pending] = useActionState<{ error?: string }, FormData>(
@@ -97,7 +97,7 @@ export function ProgramStatusControl({
         return (
           <form action={formAction} key={to} className="inline-flex">
             <input type="hidden" name="programId" value={programId} />
-            <input type="hidden" name="patientId" value={patientId} />
+            <input type="hidden" name="caseId" value={caseId} />
             <input type="hidden" name="status" value={to} />
             <Button
               type="submit"

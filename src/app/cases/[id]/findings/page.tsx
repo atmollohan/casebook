@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { listFindings, findPatientById } from "@/lib/db/repo";
+import { listFindings, findCaseById } from "@/lib/db/repo";
 import { requireUser } from "@/lib/server/auth";
 import { notFound } from "next/navigation";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export default async function FindingsTabPage({
   const { new: showNew } = await searchParams;
   const user = await requireUser();
   const db = getDb();
-  const found = findPatientById(db, id, user.id);
+  const found = findCaseById(db, id, user.id);
   if (!found) notFound();
   const findings = listFindings(db, found.program.id, user.id) ?? [];
 
@@ -44,7 +44,7 @@ export default async function FindingsTabPage({
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-ink-900">Findings</h2>
-        <ButtonLink href={`/patients/${id}/findings?new=1`} icon={<Plus className="size-4" />}>
+        <ButtonLink href={`/cases/${id}/findings?new=1`} icon={<Plus className="size-4" />}>
           Record finding
         </ButtonLink>
       </div>
@@ -57,7 +57,7 @@ export default async function FindingsTabPage({
             aside={<Lightbulb className="size-5 text-amber-500" />}
           />
           <CardBody>
-            <RecordFindingForm programId={found.program.id} patientId={id} />
+            <RecordFindingForm programId={found.program.id} caseId={id} />
           </CardBody>
         </Card>
       )}
@@ -68,7 +68,7 @@ export default async function FindingsTabPage({
             icon={<Lightbulb className="size-6" />}
             title="No findings yet"
             action={
-              <ButtonLink href={`/patients/${id}/findings?new=1`} size="sm">
+              <ButtonLink href={`/cases/${id}/findings?new=1`} size="sm">
                 <Plus className="size-4" /> Record the first finding
               </ButtonLink>
             }
@@ -102,7 +102,7 @@ export default async function FindingsTabPage({
                   <p className="text-sm leading-relaxed text-ink-900/90">{f.description}</p>
                   {f.activity && (
                     <Link
-                      href={`/patients/${id}/activities/${f.activity.id}`}
+                      href={`/cases/${id}/activities/${f.activity.id}`}
                       className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-700 hover:underline"
                     >
                       <FlaskConical className="size-3.5" /> From analysis: {f.activity.title}
@@ -115,7 +115,7 @@ export default async function FindingsTabPage({
                         <BookOpenText className="size-4 text-ink-700/50" />
                         Evidence & sources ({f.evidence.length})
                       </div>
-                      <AddEvidenceToggle findingId={f.id} programId={found.program.id} patientId={id} />
+                      <AddEvidenceToggle findingId={f.id} programId={found.program.id} caseId={id} />
                     </div>
                     {f.evidence.length > 0 ? (
                       <ul className="mt-3 space-y-2">
@@ -152,7 +152,7 @@ export default async function FindingsTabPage({
                               evidenceId={e.id}
                               findingId={f.id}
                               programId={found.program.id}
-                              patientId={id}
+                              caseId={id}
                             />
                           </li>
                         ))}

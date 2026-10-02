@@ -86,7 +86,7 @@ export function AppShell({ user, children }: { user: User; children: React.React
             >
               Help
             </ButtonLink>
-            <ButtonLink href="/patients/new" variant="secondary" size="sm" icon={<Plus className="size-4" />}>
+            <ButtonLink href="/cases/new" variant="secondary" size="sm" icon={<Plus className="size-4" />}>
               <span className="hidden sm:inline">New patient program</span>
               <span className="sm:hidden">New</span>
             </ButtonLink>

@@ -7,7 +7,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function GenerateReportForm({ programId, patientId }: { programId: string; patientId: string }) {
+export function GenerateReportForm({ programId, caseId }: { programId: string; caseId: string }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<{ error?: string; reportId?: string }, FormData>(
     generateReportAction,
@@ -49,7 +49,7 @@ export function GenerateReportForm({ programId, patientId }: { programId: string
         <p className="mt-1 text-sm text-ink-700/80">Assembled from the current state of this program.</p>
         <form action={formAction} className="mt-4 flex flex-wrap items-center gap-2">
           <input type="hidden" name="programId" value={programId} />
-          <input type="hidden" name="patientId" value={patientId} />
+          <input type="hidden" name="caseId" value={caseId} />
           <Button type="submit" disabled={pending} icon={<Sparkles className="size-4" />}>
             {pending ? "Assembling…" : "Generate report"}
           </Button>

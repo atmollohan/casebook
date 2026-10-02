@@ -10,7 +10,7 @@ import { formatBytes } from "@/lib/utils/format";
 import { Upload } from "lucide-react";
 import { MAX_UPLOAD_BYTES } from "@/lib/files/limits";
 
-export function UploadDataForm({ programId, patientId }: { programId: string; patientId: string }) {
+export function UploadDataForm({ programId, caseId }: { programId: string; caseId: string }) {
   const [state, formAction, pending] = useActionState<DataFormState, FormData>(uploadDataAction, {});
 
   return (
@@ -26,7 +26,7 @@ export function UploadDataForm({ programId, patientId }: { programId: string; pa
         </p>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="programId" value={programId} />
-          <input type="hidden" name="patientId" value={patientId} />
+          <input type="hidden" name="caseId" value={caseId} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Display title"
@@ -76,7 +76,7 @@ export function UploadDataForm({ programId, patientId }: { programId: string; pa
               {pending ? "Uploading…" : "Upload file"}
             </Button>
             <a
-              href={`/patients/${patientId}/data`}
+              href={`/cases/${caseId}/data`}
               className="rounded-lg px-3 py-2 text-sm font-medium text-ink-700/70 hover:bg-ink-100 hover:text-ink-900"
             >
               Cancel

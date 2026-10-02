@@ -4,7 +4,7 @@ process.env.TEST_DATABASE = "memory";
 process.env.DATABASE_FILE = ":memory:";
 
 /**
- * Creating a patient and their research program, end to end, through the real server action.
+ * Creating a case and its research program, end to end, through the real server action.
  *
  * This is the entry point to the whole product: nothing exists until this form works. It was
  * reported as "fails" and the cause was an optional field (birth year) that rejected every
@@ -47,13 +47,15 @@ import { getClient, getDb, migrateDb } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import {
   createUser,
-  findPatientById,
+  findCaseById,
   getProgramForResearcher,
   listHistory,
   listProgramsForResearcher,
 } from "@/lib/db/repo";
 import type { User } from "@/lib/db/schema";
 import {
+  ATTRIBUTE_MAX_COUNT,
+  ATTRIBUTE_VALUE_MAX,
   PROGRAM_STATUSES,
   PROGRAM_STATUS_LABELS,
   PROGRAM_STATUS_TRANSITIONS,
@@ -62,7 +64,13 @@ import {
   canTransitionProgram,
   type ProgramStatus,
 } from "@/lib/constants";
-import { createPatientAction, updateProgramStatusAction, type FormState } from "@/actions/patient";
+import {
+  createCaseAction,
+  updateCaseAction,
+  updateProgramStatusAction,
+  type FormState,
+} from "@/actions/case";
+import { parseAttributes } from "@/lib/attributes";
 
 /** Build FormData the way the browser would, so optional fields are genuinely absent. */
 function form(fields: Record<string, string | undefined>) {
@@ -73,13 +81,19 @@ function form(fields: Record<string, string | undefined>) {
   return fd;
 }
 
-/** The only two required inputs, plus the two selects the page always submits. */
+/** One attribute row, in the `<field>__key_<n>` / `<field>__value_<n>` shape the form posts. */
+function attributeRow(index: number, key?: string, value?: string) {
+  return {
+    [`attribute__key_${index}`]: key,
+    [`attribute__value_${index}`]: value,
+  };
+}
+
+/** The only required inputs, plus the two selects the page always submits. */
 function minimalForm(overrides: Record<string, string | undefined> = {}) {
   return form({
-    firstName: "Testy",
-    lastName: "McTestface",
-    sex: "unknown",
-    consentStatus: "consented",
+    title: "Test subject",
+    kind: "subject",
     programTitle: "TP53 disruption in treatment-refractory CLL",
     ...overrides,
   });
@@ -91,12 +105,10 @@ function ownedPrograms(userId: string) {
 }
 
 const fullForm = {
-  firstName: "Testy",
-  lastName: "McTestface",
-  birthYear: "1985",
-  sex: "unknown",
-  conditionSummary: "Refractory CLL; TP53 disruption research focus",
-  consentStatus: "consented",
+  title: "Test subject",
+  subtitle: "treatment-refractory CLL",
+  kind: "subject",
+  summary: "Refractory CLL; TP53 disruption research focus",
   programTitle: "TP53 disruption in treatment-refractory CLL",
   programDescription: "Scope, data sources, and investigation plan",
   programHypothesis: "TP53 disruption drives resistance",
@@ -126,38 +138,36 @@ beforeEach(() => {
   redirects.length = 0;
 });
 
-/** Run the action and return the patient id it redirected to, or the state it returned. */
+/** Run the action and return the case id it redirected to, or the state it returned. */
 async function create(formData: FormData) {
   const before = redirects.length;
-  const state = (await createPatientAction({} as FormState, formData).catch((e: Error) =>
+  const state = (await createCaseAction({} as FormState, formData).catch((e: Error) =>
     /NEXT_REDIRECT/.test(e.message) ? null : Promise.reject(e),
   )) as FormState | null;
   // The redirect this call produced, not one left over from an earlier call in the same test.
   const to = redirects[before];
-  return { state, patientId: to ? to.match(/^\/patients\/([^/?]+)/)?.[1] : undefined };
+  return { state, caseId: to ? to.match(/^\/cases\/([^/?]+)/)?.[1] : undefined };
 }
 
-describe("creating a patient program", () => {
-  it("creates the patient and program and opens the new workspace", async () => {
-    const { state, patientId } = await create(form(fullForm));
+describe("creating a case", () => {
+  it("creates the case and program and opens the new workspace", async () => {
+    const { state, caseId } = await create(form(fullForm));
 
     expect(state).toBeNull(); // ended in a redirect, not a returned error
-    expect(patientId).toMatch(/^pat_/);
-    expect(redirects[0]).toBe(`/patients/${patientId}?tab=overview&created=1`);
+    expect(caseId).toMatch(/^cas_/);
+    expect(redirects[0]).toBe(`/cases/${caseId}?tab=overview&created=1`);
   });
 
-  it("persists what the form collected, on both the patient and the program", async () => {
-    const { patientId } = await create(form(fullForm));
+  it("persists what the form collected, on both the case and the program", async () => {
+    const { caseId } = await create(form(fullForm));
 
-    const found = findPatientById(getDb(), patientId!, owner.id);
+    const found = findCaseById(getDb(), caseId!, owner.id);
     expect(found).not.toBeNull();
-    expect(found!.patient).toMatchObject({
-      firstName: "Testy",
-      lastName: "McTestface",
-      birthYear: 1985,
-      sex: "unknown",
-      conditionSummary: "Refractory CLL; TP53 disruption research focus",
-      consentStatus: "consented",
+    expect(found!.case).toMatchObject({
+      title: "Test subject",
+      subtitle: "treatment-refractory CLL",
+      kind: "subject",
+      summary: "Refractory CLL; TP53 disruption research focus",
       ownerId: owner.id,
     });
     expect(found!.program).toMatchObject({
@@ -169,19 +179,18 @@ describe("creating a patient program", () => {
     });
   });
 
-  it("gives the patient a unique human-readable id", async () => {
+  it("gives the case a unique human-readable code", async () => {
     const first = await create(form(fullForm));
     const second = await create(form(fullForm));
 
-    const pids = [first.patientId!, second.patientId!].map(
-      (id) => findPatientById(getDb(), id, owner.id)!.patient.pid,
-    );
-    expect(new Set(pids).size).toBe(2);
+    const codes = [first.caseId!, second.caseId!].map((id) => findCaseById(getDb(), id, owner.id)!.case.code);
+    expect(new Set(codes).size).toBe(2);
+    for (const code of codes) expect(code).toMatch(/^CB-C-\d{4}$/);
   });
 
   it("records who created the case", async () => {
-    const { patientId } = await create(form(fullForm));
-    const { program } = findPatientById(getDb(), patientId!, owner.id)!;
+    const { caseId } = await create(form(fullForm));
+    const { program } = findCaseById(getDb(), caseId!, owner.id)!;
 
     const events = listHistory(getDb(), program.id, owner.id);
     expect(events!.map((e) => e.eventType)).toContain("program_created");
@@ -192,35 +201,120 @@ describe("creating a patient program", () => {
 
   it("shows the new case in the researcher's own list", async () => {
     const before = ownedPrograms(owner.id).length;
-    const { patientId } = await create(form(fullForm));
+    const { caseId } = await create(form(fullForm));
     const after = ownedPrograms(owner.id);
 
     expect(after).toHaveLength(before + 1);
-    expect(after.map((p) => p.patient.id)).toContain(patientId);
+    expect(after.map((p) => p.case.id)).toContain(caseId);
   });
 
   it("stays invisible to a researcher who does not own it", async () => {
-    const { patientId } = await create(form(fullForm));
+    const { caseId } = await create(form(fullForm));
 
-    expect(findPatientById(getDb(), patientId!, stranger.id)).toBeNull();
-    expect(ownedPrograms(stranger.id).map((p) => p.patient.id)).not.toContain(patientId);
+    expect(findCaseById(getDb(), caseId!, stranger.id)).toBeNull();
+    expect(ownedPrograms(stranger.id).map((p) => p.case.id)).not.toContain(caseId);
+  });
+});
+
+describe("case kinds", () => {
+  it("defaults to subject when the select is not touched", async () => {
+    const { caseId } = await create(form({ ...fullForm, kind: undefined }));
+
+    expect(findCaseById(getDb(), caseId!, owner.id)!.case.kind).toBe("subject");
+  });
+
+  // A `subject` is one kind among several, not the shape the app assumes. A case with no
+  // person in it has to be a first-class thing, or the model is not actually general.
+  it.each(["material", "sample", "dataset", "device"])("accepts a %s case", async (kind) => {
+    const { caseId } = await create(form({ ...fullForm, kind }));
+
+    expect(findCaseById(getDb(), caseId!, owner.id)!.case.kind).toBe(kind);
+  });
+
+  it("refuses a kind that is not one of them", async () => {
+    const { state, caseId } = await create(form({ ...fullForm, kind: "patient" }));
+
+    expect(caseId).toBeUndefined();
+    expect(state?.fieldErrors?.kind).toBeDefined();
+  });
+});
+
+describe("attributes", () => {
+  it("stores the rows the form posted", async () => {
+    const { caseId } = await create(
+      form({
+        ...fullForm,
+        ...attributeRow(0, "Birth year", "1985"),
+        ...attributeRow(1, "Specimen", "Peripheral blood"),
+      }),
+    );
+
+    const found = findCaseById(getDb(), caseId!, owner.id)!;
+    expect(parseAttributes(found.case.attributes)).toEqual({
+      "Birth year": "1985",
+      Specimen: "Peripheral blood",
+    });
+  });
+
+  it("ignores a row with neither a name nor a value, and a name with no value", async () => {
+    const { state, caseId } = await create(
+      form({
+        ...fullForm,
+        ...attributeRow(0, "  ", "  "),
+        ...attributeRow(1, "Specimen", ""),
+        ...attributeRow(2, "Site", "North"),
+      }),
+    );
+
+    expect(state).toBeNull();
+    expect(parseAttributes(findCaseById(getDb(), caseId!, owner.id)!.case.attributes)).toEqual({
+      Site: "North",
+    });
+  });
+
+  it("refuses a value with no name rather than storing a nameless fact", async () => {
+    const { state, caseId } = await create(form({ ...fullForm, ...attributeRow(0, "", "1985") }));
+
+    expect(caseId).toBeUndefined();
+    expect(state?.error).toMatch(/name/i);
+  });
+
+  it("refuses a submission past the documented bounds, rather than truncating it", async () => {
+    // Silently dropping attributes would be the worse failure: the investigator would believe
+    // a fact was recorded when it was not.
+    const tooLong = form({
+      ...fullForm,
+      ...attributeRow(0, "Notes", "x".repeat(ATTRIBUTE_VALUE_MAX + 1)),
+    });
+    expect((await create(tooLong)).state?.error).toBeDefined();
+
+    const tooMany = form({
+      ...fullForm,
+      ...Object.fromEntries(
+        Array.from({ length: ATTRIBUTE_MAX_COUNT + 1 }, (_, i) =>
+          Object.entries(attributeRow(i, `Field ${i}`, "value")),
+        ).flat(),
+      ),
+    });
+    expect((await create(tooMany)).state?.error).toBeDefined();
   });
 });
 
 describe("optional fields on the create form", () => {
-  // Regression: birth year was preprocessed with `v === "" ? undefined : Number(v)`, so a
-  // blank field became undefined, then Number(undefined) === NaN, and Zod rejected the
-  // submission with "Expected number, received nan". Birth year is not required, so every
-  // user who skipped it could not create a patient at all.
+  // Regression: optional input used to be preprocessed with `v === "" ? undefined : Number(v)`,
+  // so a blank field became undefined, then Number(undefined) === NaN, and Zod rejected the
+  // submission. Optional fields are not required, so every user who skipped one could not
+  // create a case at all. They are first-class cases here rather than an afterthought.
   it("accepts a submission with every optional field blank", async () => {
-    const { state, patientId } = await create(minimalForm());
+    const { state, caseId } = await create(minimalForm());
 
     expect(state).toBeNull();
-    expect(patientId).toMatch(/^pat_/);
-    const found = findPatientById(getDb(), patientId!, owner.id)!;
+    expect(caseId).toMatch(/^cas_/);
+    const found = findCaseById(getDb(), caseId!, owner.id)!;
     // Blank optional input is stored as "not recorded", not as an empty string.
-    expect(found.patient.birthYear).toBeNull();
-    expect(found.patient.conditionSummary).toBeNull();
+    expect(found.case.subtitle).toBeNull();
+    expect(found.case.summary).toBeNull();
+    expect(found.case.attributes).toBeNull();
     expect(found.program.focusArea).toBeNull();
     expect(found.program.hypothesis).toBeNull();
   });
@@ -228,64 +322,132 @@ describe("optional fields on the create form", () => {
   it.each([
     ["an empty string", ""],
     ["whitespace", "   "],
-  ])("treats a birth year of %s as not recorded", async (_label, birthYear) => {
-    const { patientId } = await create(minimalForm({ birthYear }));
+  ])("treats a title of %s as not submitted, and says so", async (_label, title) => {
+    const { state, caseId } = await create(minimalForm({ title }));
 
-    expect(patientId).toMatch(/^pat_/);
-    expect(findPatientById(getDb(), patientId!, owner.id)!.patient.birthYear).toBeNull();
-  });
-
-  it("rejects a birth year that is not a real year", async () => {
-    for (const birthYear of ["1800", String(new Date().getFullYear() + 1), "1985.5"]) {
-      const { state, patientId } = await create(minimalForm({ birthYear }));
-      expect(patientId, `accepted birth year ${birthYear}`).toBeUndefined();
-      expect(state?.fieldErrors?.birthYear, `no message for ${birthYear}`).toBeDefined();
-    }
-  });
-
-  it("rejects junk in a numeric field with a message a person can act on", async () => {
-    const { state } = await create(minimalForm({ birthYear: "nineteen eighty five" }));
-
-    expect(state?.fieldErrors?.birthYear?.[0]).not.toMatch(/nan/i);
+    expect(caseId).toBeUndefined();
+    expect(state?.fieldErrors?.title).toBeDefined();
   });
 });
 
-describe("patient ids once a patient has been removed", () => {
-  // Retention and deletion are Phase 8, but creating a patient has to survive them arriving:
-  // the id used to be derived from the row count, so after any deletion the next create was
-  // handed a pid that was already taken and died on the unique index. It is now derived from
-  // the highest id in use.
+describe("case codes once a case has been removed", () => {
+  // Retention and deletion are Phase 8, but creating a case has to survive them arriving: the
+  // code used to be derived from the row count, so after any deletion the next create was
+  // handed a code that was already taken and died on the unique index. It is now derived from
+  // the highest code in use.
   //
-  // What this does NOT yet guarantee is that a removed patient's number is never issued again.
-  // That needs a high-water-mark counter that outlives the row, and it has to land with the
-  // deletion work in Phase 8 — recorded in ASSUMPTIONS rather than half-solved here.
-  // Deleting a patient in the middle of the sequence is the case that used to crash: the
-  // count-based id handed back a number another patient was still using.
-  it("still creates a case after a patient in the middle is removed", async () => {
+  // What this does NOT yet guarantee is that a removed case's code is never issued again. That
+  // needs a high-water-mark counter that outlives the row, and it has to land with the deletion
+  // work in Phase 8 — recorded in ASSUMPTIONS rather than half-solved here.
+  it("still creates a case after one in the middle is removed", async () => {
     const created: string[] = [];
     for (let i = 0; i < 3; i++) {
-      created.push((await create(form(fullForm))).patientId!);
+      created.push((await create(form(fullForm))).caseId!);
     }
     const middle = created[1];
-    getClient(getDb()).prepare("delete from research_programs where patient_id = ?").run(middle);
-    getClient(getDb()).prepare("delete from patients where id = ?").run(middle);
+    getClient(getDb()).prepare("delete from research_programs where case_id = ?").run(middle);
+    getClient(getDb()).prepare("delete from cases where id = ?").run(middle);
 
     const next = await create(form(fullForm));
 
-    expect(next.patientId).toMatch(/^pat_/);
-    const taken = ownedPrograms(owner.id).map((p) => p.patient.pid);
-    expect(taken).toContain(findPatientById(getDb(), next.patientId!, owner.id)!.patient.pid);
+    expect(next.caseId).toMatch(/^cas_/);
+    const taken = ownedPrograms(owner.id).map((p) => p.case.code);
+    expect(taken).toContain(findCaseById(getDb(), next.caseId!, owner.id)!.case.code);
   });
 
-  it("keeps issuing ids in ascending order", async () => {
+  it("keeps issuing codes in ascending order", async () => {
     const seen: number[] = [];
     for (let i = 0; i < 3; i++) {
-      const { patientId } = await create(form(fullForm));
-      const pid = findPatientById(getDb(), patientId!, owner.id)!.patient.pid;
-      seen.push(Number(pid.replace(/\D/g, "")));
+      const { caseId } = await create(form(fullForm));
+      const code = findCaseById(getDb(), caseId!, owner.id)!.case.code;
+      seen.push(Number(code.replace(/\D/g, "")));
     }
     expect(seen).toEqual([...seen].sort((a, b) => a - b));
     expect(new Set(seen).size).toBe(3);
+  });
+});
+
+describe("editing a case", () => {
+  async function ownedCase() {
+    const { caseId } = await create(
+      form({ ...fullForm, ...attributeRow(0, "Specimen", "Peripheral blood") }),
+    );
+    return findCaseById(getDb(), caseId!, owner.id)!;
+  }
+
+  it("changes the case fields the investigator edited", async () => {
+    const { program } = await ownedCase();
+
+    const result = await updateCaseAction(
+      {},
+      form({
+        programId: program.id,
+        title: "Renamed subject",
+        subtitle: "new subtitle",
+        kind: "sample",
+        summary: "new summary",
+        ...attributeRow(0, "Specimen", "Bone marrow"),
+        ...attributeRow(1, "Site", "North"),
+      }),
+    );
+
+    expect(result.error).toBeUndefined();
+    const after = findCaseById(getDb(), program.caseId, owner.id)!;
+    expect(after.case).toMatchObject({
+      title: "Renamed subject",
+      subtitle: "new subtitle",
+      kind: "sample",
+      summary: "new summary",
+    });
+    expect(parseAttributes(after.case.attributes)).toEqual({
+      Specimen: "Bone marrow",
+      Site: "North",
+    });
+  });
+
+  it("clears the summary when the field is emptied", async () => {
+    const { program } = await ownedCase();
+
+    await updateCaseAction(
+      {},
+      form({ programId: program.id, title: "Test subject", kind: "subject", summary: "" }),
+    );
+
+    expect(findCaseById(getDb(), program.caseId, owner.id)!.case.summary).toBeNull();
+  });
+
+  it("records the edit in history", async () => {
+    const { program } = await ownedCase();
+
+    await updateCaseAction({}, form({ programId: program.id, title: "Renamed subject", kind: "subject" }));
+
+    const events = listHistory(getDb(), program.id, owner.id)!;
+    expect(events.map((e) => e.eventType)).toContain("case_updated");
+  });
+
+  it("refuses a kind that is not one of them", async () => {
+    const { program } = await ownedCase();
+
+    const result = await updateCaseAction(
+      {},
+      form({ programId: program.id, title: "Test subject", kind: "patient" }),
+    );
+
+    expect(result.fieldErrors?.kind).toBeDefined();
+    expect(findCaseById(getDb(), program.caseId, owner.id)!.case.title).toBe("Test subject");
+  });
+
+  it("will not edit a case belonging to someone else", async () => {
+    const { program } = await ownedCase();
+    currentUserId = stranger.id;
+
+    const result = await updateCaseAction(
+      {},
+      form({ programId: program.id, title: "Hijacked", kind: "subject" }),
+    );
+
+    expect(result.error).toMatch(/not found/i);
+    expect(findCaseById(getDb(), program.caseId, owner.id)!.case.title).toBe("Test subject");
   });
 });
 
@@ -294,29 +456,29 @@ describe("the status a program is created in", () => {
   // real step is "Start program" on the Overview tab. `planned` is only reachable here —
   // no transition leads into it — so if this regressed the status would be dead.
   it("starts planned when the form does not say otherwise", async () => {
-    const { patientId } = await create(minimalForm());
+    const { caseId } = await create(minimalForm());
 
-    expect(findPatientById(getDb(), patientId!, owner.id)!.program.status).toBe("planned");
+    expect(findCaseById(getDb(), caseId!, owner.id)!.program.status).toBe("planned");
   });
 
   it("can be created already active, for work starting now", async () => {
-    const { patientId } = await create(minimalForm({ status: "active" }));
+    const { caseId } = await create(minimalForm({ status: "active" }));
 
-    expect(findPatientById(getDb(), patientId!, owner.id)!.program.status).toBe("active");
+    expect(findCaseById(getDb(), caseId!, owner.id)!.program.status).toBe("active");
   });
 
   it("refuses to be born into a status that implies work already happened", async () => {
     for (const status of ["paused", "closing", "closed"]) {
-      const { state, patientId } = await create(minimalForm({ status }));
-      expect(patientId, `created a ${status} program`).toBeUndefined();
+      const { state, caseId } = await create(minimalForm({ status }));
+      expect(caseId, `created a ${status} program`).toBeUndefined();
       expect(state?.fieldErrors?.status, `no message for ${status}`).toBeDefined();
     }
   });
 
   it("refuses a starting status that is not a status", async () => {
     for (const status of ["archived", "PLANNED", "1"]) {
-      const { state, patientId } = await create(minimalForm({ status }));
-      expect(patientId, `accepted ${JSON.stringify(status)}`).toBeUndefined();
+      const { state, caseId } = await create(minimalForm({ status }));
+      expect(caseId, `accepted ${JSON.stringify(status)}`).toBeUndefined();
       expect(state?.fieldErrors?.status).toBeDefined();
     }
   });
@@ -324,10 +486,10 @@ describe("the status a program is created in", () => {
   it("falls back to the default when the field is submitted blank", async () => {
     // A select that was never touched still submits something, and an empty value means
     // "not specified" rather than "invalid" — the same as the other optional fields.
-    const { state, patientId } = await create(minimalForm({ status: "" }));
+    const { state, caseId } = await create(minimalForm({ status: "" }));
 
     expect(state).toBeNull();
-    expect(findPatientById(getDb(), patientId!, owner.id)!.program.status).toBe(PROGRAM_DEFAULT_STATUS);
+    expect(findCaseById(getDb(), caseId!, owner.id)!.program.status).toBe(PROGRAM_DEFAULT_STATUS);
   });
 
   it("only offers statuses that are a legal way to begin", () => {
@@ -337,8 +499,8 @@ describe("the status a program is created in", () => {
   });
 
   it("records the new program in history with the status it was created in", async () => {
-    const { patientId } = await create(minimalForm({ status: "active" }));
-    const { program } = findPatientById(getDb(), patientId!, owner.id)!;
+    const { caseId } = await create(minimalForm({ status: "active" }));
+    const { program } = findCaseById(getDb(), caseId!, owner.id)!;
 
     const created = listHistory(getDb(), program.id, owner.id)!.find(
       (e) => e.eventType === "program_created",
@@ -349,13 +511,12 @@ describe("the status a program is created in", () => {
 
 describe("required fields on the create form", () => {
   it.each([
-    ["firstName", { firstName: undefined }],
-    ["lastName", { lastName: undefined }],
+    ["title", { title: undefined }],
     ["programTitle", { programTitle: undefined }],
   ])("refuses to create a case without %s", async (field, overrides) => {
-    const { state, patientId } = await create(minimalForm(overrides));
+    const { state, caseId } = await create(minimalForm(overrides));
 
-    expect(patientId).toBeUndefined();
+    expect(caseId).toBeUndefined();
     expect(state?.fieldErrors?.[field]).toBeDefined();
   });
 
@@ -373,23 +534,19 @@ describe("authorization", () => {
     currentUserId = null;
     const before = ownedPrograms(owner.id).length;
 
-    await expect(createPatientAction({} as FormState, form(fullForm))).rejects.toThrow("NEXT_REDIRECT");
+    await expect(createCaseAction({} as FormState, form(fullForm))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(ownedPrograms(owner.id)).toHaveLength(before);
   });
 
   it("does not let a signed-in researcher attach a program to someone else's case", async () => {
-    const { patientId } = await create(form(fullForm));
+    const { caseId } = await create(form(fullForm));
     currentUserId = stranger.id;
 
     // Ownership is decided by the session, not by anything the form supplies, so a
     // stranger asking for a program id cannot reach an existing case.
     expect(
-      getProgramForResearcher(
-        getDb(),
-        findPatientById(getDb(), patientId!, owner.id)!.program.id,
-        stranger.id,
-      ),
+      getProgramForResearcher(getDb(), findCaseById(getDb(), caseId!, owner.id)!.program.id, stranger.id),
     ).toBeNull();
   });
 });
@@ -445,18 +602,18 @@ describe("the program lifecycle", () => {
 describe("moving a program to another status", () => {
   /** A case owned by `owner`, parked in `status` so the move under test starts from there. */
   async function programInStatus(status: ProgramStatus) {
-    const { patientId } = await create(form(fullForm));
-    const { program } = findPatientById(getDb(), patientId!, owner.id)!;
+    const { caseId } = await create(form(fullForm));
+    const { program } = findCaseById(getDb(), caseId!, owner.id)!;
     // Arranging the starting state is fixture setup, so it goes in directly rather than
     // through a chain of moves the test is not about.
     getClient(getDb())
       .prepare("update research_programs set status = ? where id = ?")
       .run(status, program.id);
-    return { patientId: patientId!, programId: program.id, program };
+    return { caseId: caseId!, programId: program.id, program };
   }
 
-  async function move(programId: string, status: string, patientId?: string) {
-    return updateProgramStatusAction({}, form({ programId, patientId, status }));
+  async function move(programId: string, status: string, caseId?: string) {
+    return updateProgramStatusAction({}, form({ programId, caseId, status }));
   }
 
   function statusOf(programId: string) {
@@ -468,9 +625,9 @@ describe("moving a program to another status", () => {
   }
 
   it("starts a planned program", async () => {
-    const { programId, patientId } = await programInStatus("planned");
+    const { programId, caseId } = await programInStatus("planned");
 
-    const result = await move(programId, "active", patientId);
+    const result = await move(programId, "active", caseId);
 
     expect(result.error).toBeUndefined();
     expect(statusOf(programId)).toBe("active");
@@ -490,10 +647,10 @@ describe("moving a program to another status", () => {
   });
 
   it("walks a program through pause, resume, closing, and closed", async () => {
-    const { programId, patientId } = await programInStatus("active");
+    const { programId, caseId } = await programInStatus("active");
 
     for (const step of ["paused", "active", "closing", "closed"] as ProgramStatus[]) {
-      const result = await move(programId, step, patientId);
+      const result = await move(programId, step, caseId);
       expect(result.error, `could not move to ${step}`).toBeUndefined();
       expect(statusOf(programId)).toBe(step);
     }
@@ -583,8 +740,8 @@ describe("moving a program to another status", () => {
 
 describe("moving someone else's program", () => {
   async function ownersProgram() {
-    const { patientId } = await create(form(fullForm));
-    return findPatientById(getDb(), patientId!, owner.id)!.program;
+    const { caseId } = await create(form(fullForm));
+    return findCaseById(getDb(), caseId!, owner.id)!.program;
   }
 
   it("is refused, and the program is left where it was", async () => {
@@ -594,11 +751,11 @@ describe("moving someone else's program", () => {
     // A move the owner could make, so the refusal can only be about who is asking.
     const result = await updateProgramStatusAction(
       {},
-      form({ programId: program.id, patientId: program.patientId, status: "active" }),
+      form({ programId: program.id, caseId: program.caseId, status: "active" }),
     );
 
     expect(result.error).toMatch(/not found/i);
-    expect(findPatientById(getDb(), program.patientId, owner.id)!.program.status).toBe("planned");
+    expect(findCaseById(getDb(), program.caseId, owner.id)!.program.status).toBe("planned");
     expect(listHistory(getDb(), program.id, owner.id)!.some((e) => e.eventType === "program_status")).toBe(
       false,
     );
@@ -612,6 +769,6 @@ describe("moving someone else's program", () => {
       updateProgramStatusAction({}, form({ programId: program.id, status: "active" })),
     ).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(findPatientById(getDb(), program.patientId, owner.id)!.program.status).toBe("planned");
+    expect(findCaseById(getDb(), program.caseId, owner.id)!.program.status).toBe("planned");
   });
 });

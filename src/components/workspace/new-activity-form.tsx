@@ -8,7 +8,7 @@ import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { FlaskConical } from "lucide-react";
 
-export function NewActivityForm({ programId, patientId }: { programId: string; patientId: string }) {
+export function NewActivityForm({ programId, caseId }: { programId: string; caseId: string }) {
   const [state, formAction, pending] = useActionState<ActivityFormState, FormData>(createActivityAction, {});
 
   return (
@@ -21,7 +21,7 @@ export function NewActivityForm({ programId, patientId }: { programId: string; p
       <CardBody>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="programId" value={programId} />
-          <input type="hidden" name="patientId" value={patientId} />
+          <input type="hidden" name="caseId" value={caseId} />
           <Field
             label="Activity title"
             htmlFor="title"
@@ -66,7 +66,7 @@ export function NewActivityForm({ programId, patientId }: { programId: string; p
               {pending ? "Creating…" : "Create analysis"}
             </Button>
             <a
-              href={`/patients/${patientId}/activities`}
+              href={`/cases/${caseId}/activities`}
               className="rounded-lg px-3 py-2 text-sm font-medium text-ink-700/70 hover:bg-ink-100 hover:text-ink-900"
             >
               Cancel

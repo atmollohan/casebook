@@ -30,13 +30,7 @@ export function ProgramsClient({ programs }: { programs: ProgramSummary[] }) {
       if (status !== "all" && p.program.status !== status) return false;
       if (!q) return true;
       const haystack = normalize(
-        [
-          p.patient.lastName,
-          p.patient.firstName,
-          p.patient.pid,
-          p.program.title,
-          p.patient.conditionSummary ?? "",
-        ].join(" "),
+        [p.case.title, p.case.subtitle ?? "", p.case.code, p.program.title, p.case.summary ?? ""].join(" "),
       );
       return haystack.includes(q);
     });
@@ -50,7 +44,7 @@ export function ProgramsClient({ programs }: { programs: ProgramSummary[] }) {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search patients, programs, diagnoses…"
+            placeholder="Search cases, programs, summaries…"
             className="pl-9"
           />
         </div>
@@ -79,10 +73,10 @@ export function ProgramsClient({ programs }: { programs: ProgramSummary[] }) {
             </div>
             <h3 className="text-[15px] font-semibold text-ink-900">No research programs yet</h3>
             <p className="mt-1 max-w-md text-sm text-ink-700/70">
-              Enroll a patient and start a research program to populate this workspace.
+              Open a case and start a research program to populate this workspace.
             </p>
             <div className="mt-5">
-              <ButtonLink href="/patients/new">New patient program</ButtonLink>
+              <ButtonLink href="/cases/new">New case</ButtonLink>
             </div>
           </div>
         </div>
