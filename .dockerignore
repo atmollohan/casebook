@@ -1,0 +1,23 @@
+# Build context hygiene for the Casebook image. Keep secrets and host state out of the
+# image; the builder generates its own fresh ./data during `npm run setup`.
+
+node_modules
+.next
+.next-dev
+out
+
+# Never send the host's runtime data, database, or environment into a build.
+data
+.env
+.env.*
+!.env.example
+*.log
+
+# Not needed to build or run the app.
+.git
+.github
+.planning
+docs
+samples
+coverage
+tsconfig.tsbuildinfo

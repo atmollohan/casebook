@@ -36,6 +36,34 @@ Sign in with the seeded researcher:
 Other scripts: `npm run seed` (idempotent re-seed), `npm run db:studio` (Drizzle Studio), `npm run samples`
 (regenerate the sample files), `npm run build && npm start` (production).
 
+## Run with Docker
+
+```bash
+cp .env.example .env        # Compose reads this for the demo credentials and app settings
+docker compose up -d        # build and start; the first run seeds the volume
+# http://localhost:3000
+```
+
+All state lives in the named volume `casebook-data` — the SQLite database at `/app/data/casebook.db` and
+uploads under `/app/data/storage`. The container is disposable: `docker compose down` keeps the volume,
+`docker compose down -v` deletes the instance. To keep data in a host folder instead, replace the volume
+with a bind mount and make the folder writable by UID 1001.
+
+The image ships the same synthetic demo instance as `npm run setup`, so it starts populated with the demo
+account **demo@example.com / demo-password**. That account is fixed at image build time (there is no in-app
+password change yet — Phase 4); for a different account, run from source and seed with `DEMO_EMAIL` and
+`DEMO_PASSWORD` set.
+
+Prebuilt multi-arch images (linux/amd64 and linux/arm64 — a 64-bit Raspberry Pi runs the arm64 image
+without compiling anything) are published to GitHub Container Registry by
+`.github/workflows/docker-publish.yml`:
+
+```bash
+docker run -d --name casebook -p 3000:3000 -v casebook-data:/app/data \
+  -e DATABASE_FILE=/app/data/casebook.db -e DATA_DIR=/app/data/storage \
+  ghcr.io/atmollohan/casebook:latest
+```
+
 ## What it does
 
 0. **First-time tour** — a three-step welcome guide (`Directory → Data → Reports`) that appears once on the
@@ -131,6 +159,9 @@ folder, then pointing `DATABASE_FILE` and `DATA_DIR` at it.
 
 Note that `npm run setup` wipes `./data` first. It is the right command for a clean slate and the wrong
 command if you have uploaded anything you want to keep.
+
+In the container, the same two things live on the `casebook-data` volume at `/app/data/casebook.db` and
+`/app/data/storage`; back up the volume the same way.
 
 ## Before you put real data in it
 

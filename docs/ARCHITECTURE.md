@@ -116,8 +116,8 @@ In diagram form (an ER diagram — the standard way to draw a database):
 ```mermaid
 erDiagram
     USERS ||--o{ SESSIONS : "has"
-    USERS ||--o{ PATIENTS : "owns"
-    PATIENTS ||--o{ RESEARCH_PROGRAMS : "has one investigation"
+    USERS ||--o{ CASES : "owns"
+    CASES ||--o{ RESEARCH_PROGRAMS : "has one investigation"
     RESEARCH_PROGRAMS ||--o{ DATA_RECORDS : "contains files"
     RESEARCH_PROGRAMS ||--o{ RESEARCH_ACTIVITIES : "contains work"
     RESEARCH_PROGRAMS ||--o{ FINDINGS : "contains conclusions"
@@ -335,6 +335,10 @@ drizzle/                  Auto-generated migration SQL
 data/                     SQLite file + uploaded files (git-ignored)
 .planning/                Product constraints, roadmap, state, and per-phase decisions
 docs/                     This document
+Dockerfile                Multi-stage image build (standalone server + baked synthetic seed)
+docker-compose.yml        One-command local instance with the casebook-data volume
+docker-entrypoint.sh      First-run seeding of the data volume
+.github/workflows/        Multi-arch image publish to GitHub Container Registry
 AGENTS.md                 The working agreement, including the mandatory verify gate
 ```
 
@@ -373,8 +377,9 @@ New ad-hoc SQL does not go in pages or components. Add a repo function instead.
 
 1. Edit `src/lib/db/schema.ts` (e.g. add a column).
 2. Run `npm run db:generate` → writes a new SQL file under `drizzle/`.
-3. Next app start runs any pending migrations automatically
-   (`src/lib/db/index.ts`, `migrateDb`).
+3. Migrations are applied by the provisioning scripts: `npm run setup` (wipe + migrate + seed) and
+   `npm run seed` (migrate only when the database file does not exist yet). The server does not
+   migrate on start; a new instance is always created through one of those scripts.
 
 `drizzle/` is tracked in git. It used to be git-ignored, which left a clean clone with no journal
 and no SQL — the app could not start at all, and nothing in the source said why. The generated
@@ -388,6 +393,23 @@ exactly as generated, and a comment at the top of the `.sql` saying what the gen
 done. `src/lib/db/migration.test.ts` is the guard: it builds the previous schema, inserts rows,
 applies the migration, and asserts the rows, the child rows, and the ownership boundary all
 survive.
+
+### Running in a container
+
+The app builds to a self-contained server bundle (`output: "standalone"` in `next.config.ts`) and ships
+with a `Dockerfile`, a `docker-compose.yml`, and a first-run entrypoint:
+
+- The `Dockerfile` is multi-stage: full dependencies build the app and generate the synthetic seed, and
+  the runtime stage carries only the standalone server. `better-sqlite3` loads a prebuilt binding for the
+  image's architecture (x64 and arm64 both exist in the package), so no compiler is needed on the host and
+  a 64-bit Raspberry Pi runs the arm64 image unchanged.
+- `docker-entrypoint.sh` copies the baked synthetic dataset into the data volume on first boot and then
+  leaves the volume alone. All persistent state is `/app/data` — the SQLite file and the uploads.
+- `.github/workflows/docker-publish.yml` builds and pushes a multi-arch image to GitHub Container
+  Registry on version tags and on the default branch.
+
+The database is still one file on a mounted volume, exactly as in the from-source path; the data model
+does not change when the app runs in a container. The README has the commands.
 
 ### The gate
 

@@ -1,0 +1,37 @@
+# Run a self-hosted Casebook instance with one command: `docker compose up -d`.
+#
+# Create the environment file first (`cp .env.example .env`) — Compose reads it for the demo
+# credentials and session settings. All instance state lives in the `casebook-data` volume
+# (SQLite database and uploaded files); the container itself is disposable.
+
+services:
+  casebook:
+    build: .
+    image: casebook:latest
+    container_name: casebook
+    restart: unless-stopped
+    ports:
+      - "${CASEBOOK_PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      # Absolute paths inside the container so the mounted volume is unambiguous.
+      DATABASE_FILE: /app/data/casebook.db
+      DATA_DIR: /app/data/storage
+    volumes:
+      - casebook-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/login').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  casebook-data:

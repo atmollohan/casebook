@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   // the other build happened not to split out. `npm run verify` ends in a build, so this
   // collision is guaranteed rather than occasional.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Emit a self-contained server bundle at `.next/standalone` for the container image and for
+  // git-first/Pi deployment. `next start` keeps working unchanged; this only adds an output.
+  output: "standalone",
   reactStrictMode: true,
   experimental: {
     serverActions: {
