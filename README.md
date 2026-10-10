@@ -193,7 +193,8 @@ npm run verify
 
 That single command is the whole quality gate, in order: Prettier format check → ESLint → TypeScript →
 Vitest → `next build`. **No change is done until it passes clean.** It currently covers the full test suite
-and a real production compile.
+and a real production compile. GitHub Actions runs the same gate on every push to `master` and every pull
+request (`.github/workflows/ci.yml`).
 
 | Task                | Command              |
 | ------------------- | -------------------- |

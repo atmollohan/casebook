@@ -338,7 +338,7 @@ docs/                     This document
 Dockerfile                Multi-stage image build (standalone server + baked synthetic seed)
 docker-compose.yml        One-command local instance with the casebook-data volume
 docker-entrypoint.sh      First-run seeding of the data volume
-.github/workflows/        Multi-arch image publish to GitHub Container Registry
+.github/workflows/        The verify gate (ci.yml) and multi-arch image publish to GitHub Container Registry
 AGENTS.md                 The working agreement, including the mandatory verify gate
 ```
 
