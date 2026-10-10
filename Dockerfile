@@ -2,11 +2,18 @@
 
 # Casebook runs as a single self-contained Node process with a SQLite file and a storage
 # directory on one mounted volume. The image is built multi-arch (linux/amd64 and
-# linux/arm64); better-sqlite3 ships a prebuilt binding for both, so no compilation happens
-# on the target machine — a Raspberry Pi needs no build toolchain.
+# linux/arm64). Only the runner stage ships: a Raspberry Pi runs the prebuilt image and
+# needs no build toolchain.
 
 FROM node:24-bookworm-slim AS deps
 WORKDIR /app
+# npm runs `node-gyp rebuild` for better-sqlite3 at install time (its manifest has no
+# install script but it ships a binding.gyp), so the deps stage needs a C++ toolchain and
+# Python. This stage is discarded from the final image; the runtime carries only the
+# prebuilt native binding.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 build-essential \
+  && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci
 
