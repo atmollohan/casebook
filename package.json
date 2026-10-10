@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
-    "@rolldown/binding-linux-x64-gnu": "^1.2.10",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^24.0.0",
     "@types/react": "^19.3.0",
@@ -50,5 +49,8 @@
     "tsx": "^4.19.0",
     "typescript": "^5.9.0",
     "vitest": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "^1.2.10"
   }
 }
